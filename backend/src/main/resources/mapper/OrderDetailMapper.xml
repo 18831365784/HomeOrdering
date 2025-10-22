@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homeordering.mapper.OrderDetailMapper">
+
+    <resultMap id="OrderDetailResultMap" type="com.homeordering.entity.OrderDetail">
+        <id property="id" column="id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="dishId" column="dish_id"/>
+        <result property="dishName" column="dish_name"/>
+        <result property="dishImage" column="dish_image"/>
+        <result property="dishPrice" column="dish_price"/>
+        <result property="quantity" column="quantity"/>
+        <result property="subtotal" column="subtotal"/>
+    </resultMap>
+
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO order_detail (order_id, dish_id, dish_name, dish_image, dish_price, quantity, subtotal)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.orderId}, #{item.dishId}, #{item.dishName}, #{item.dishImage}, #{item.dishPrice}, #{item.quantity}, #{item.subtotal})
+        </foreach>
+    </insert>
+
+    <select id="selectByOrderId" resultMap="OrderDetailResultMap">
+        SELECT * FROM order_detail WHERE order_id = #{orderId}
+    </select>
+
+    <delete id="deleteByOrderId">
+        DELETE FROM order_detail WHERE order_id = #{orderId}
+    </delete>
+
+</mapper>

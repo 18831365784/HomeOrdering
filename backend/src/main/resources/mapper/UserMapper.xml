@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.homeordering.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="com.homeordering.entity.User">
+        <id property="id" column="id"/>
+        <result property="openid" column="openid"/>
+        <result property="uuid" column="uuid"/>
+        <result property="nickname" column="nickname"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="role" column="role"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByOpenid" resultMap="UserResultMap">
+        SELECT * FROM user WHERE openid = #{openid}
+    </select>
+    
+    <select id="selectByUuid" resultMap="UserResultMap">
+        SELECT * FROM user WHERE uuid = #{uuid}
+    </select>
+
+    <insert id="insert" parameterType="com.homeordering.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user (openid, uuid, nickname, avatar_url, role, create_time, update_time)
+        VALUES (#{openid}, #{uuid}, #{nickname}, #{avatarUrl}, #{role}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.homeordering.entity.User">
+        UPDATE user
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="avatarUrl != null">avatar_url = #{avatarUrl},</if>
+            <if test="uuid != null">uuid = #{uuid},</if>
+            <if test="role != null">role = #{role},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+</mapper>

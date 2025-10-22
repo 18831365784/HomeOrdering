@@ -1,0 +1,19 @@
+{
+  "name": "home-ordering",
+  "appid": "wxe17c8a6b5b7ff823",
+  "description": "家庭点餐微信小程序",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wxe17c8a6b5b7ff823",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "enhance": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true
+  }
+}
