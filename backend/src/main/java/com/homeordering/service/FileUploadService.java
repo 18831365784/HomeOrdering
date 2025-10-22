@@ -15,6 +15,14 @@ public interface FileUploadService {
     String uploadFile(MultipartFile file) throws Exception;
 
     /**
+     * 上传文件到指定子目录
+     * @param file 文件
+     * @param subDir 子目录名，如"icon"（可为null/空代表主目录）
+     * @return 访问URL
+     */
+    String uploadFile(MultipartFile file, String subDir) throws Exception;
+
+    /**
      * 删除文件
      * @param fileUrl 文件URL
      * @return 是否删除成功

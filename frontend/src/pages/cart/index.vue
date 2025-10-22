@@ -205,14 +205,17 @@ export default {
   display: flex;
   align-items: center;
   gap: 20rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(123, 91, 68, 0.06);
 }
 
 .item-image {
   width: 120rpx;
   height: 120rpx;
-  border-radius: 12rpx;
+  border-radius: 16rpx;
   overflow: hidden;
   flex-shrink: 0;
+  background-color: #EFE7DD;
 }
 
 .item-image image {
@@ -224,6 +227,9 @@ export default {
   width: 100%;
   height: 100%;
   font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .item-info {
@@ -235,7 +241,7 @@ export default {
 
 .item-name {
   font-size: 28rpx;
-  color: #333333;
+  color: #2E2A27;
   font-weight: bold;
 }
 
@@ -255,13 +261,13 @@ export default {
 .control-btn {
   width: 44rpx;
   height: 44rpx;
-  border: 2rpx solid #e0e0e0;
+  border: 2rpx solid #E2D8CC;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24rpx;
-  color: #666666;
+  color: #6A625B;
 }
 
 .quantity {
@@ -273,7 +279,7 @@ export default {
 
 .delete-btn {
   font-size: 24rpx;
-  color: #999999;
+  color: #A39A92;
   padding: 8rpx 16rpx;
 }
 
@@ -288,7 +294,7 @@ export default {
 
 .empty-text {
   font-size: 32rpx;
-  color: #999999;
+  color: #A39A92;
 }
 
 .remark-card {
@@ -300,8 +306,8 @@ export default {
 .remark-input {
   width: 100%;
   min-height: 150rpx;
-  background-color: #f8f8f8;
-  border-radius: 8rpx;
+  background-color: #F6F3EF;
+  border-radius: 16rpx;
   padding: 20rpx;
   font-size: 28rpx;
   box-sizing: border-box;
@@ -314,7 +320,7 @@ export default {
   right: 0;
   background-color: #ffffff;
   padding: 20rpx;
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -8rpx 24rpx rgba(123, 91, 68, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -328,7 +334,7 @@ export default {
 
 .total-label {
   font-size: 28rpx;
-  color: #666666;
+  color: #6A625B;
 }
 
 .submit-btn {

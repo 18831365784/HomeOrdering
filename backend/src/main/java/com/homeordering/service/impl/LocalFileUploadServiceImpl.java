@@ -52,6 +52,33 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
     }
 
     /**
+     * 上传到指定子目录
+     */
+    @Override
+    public String uploadFile(MultipartFile file, String subDir) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("文件不能为空");
+        }
+        // 处理路径（子目录可为null/空）
+        File trueDir = (subDir == null || subDir.isEmpty()) ? new File(uploadPath) : new File(uploadPath, subDir);
+        if (!trueDir.exists()) {
+            trueDir.mkdirs();
+        }
+        // 构造文件名
+        String originalFilename = file.getOriginalFilename();
+        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String fileName = dateStr + "_" + UUID.randomUUID().toString().replace("-", "") + extension;
+        // 写入
+        Path filePath = Paths.get(trueDir.getAbsolutePath(), fileName);
+        Files.write(filePath, file.getBytes());
+        // 生成url  /uploads/icon/xxx.png (或不带icon)
+        String baseUrl = serverUrl.endsWith("/") ? serverUrl.substring(0, serverUrl.length() - 1) : serverUrl;
+        String urlTail = (subDir == null || subDir.isEmpty()) ? ("/uploads/" + fileName) : ("/uploads/" + subDir + "/" + fileName);
+        return baseUrl + contextPath + urlTail;
+    }
+
+    /**
      * 上传到本地
      */
     private String uploadToLocal(MultipartFile file) throws IOException {

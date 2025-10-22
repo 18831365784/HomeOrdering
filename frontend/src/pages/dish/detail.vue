@@ -153,7 +153,7 @@ export default {
 .dish-banner {
   width: 100%;
   height: 500rpx;
-  background-color: #f0f0f0;
+  background-color: #EFE7DD;
 }
 
 .dish-banner image {
@@ -180,7 +180,7 @@ export default {
 .dish-name {
   font-size: 40rpx;
   font-weight: bold;
-  color: #333333;
+  color: #2E2A27;
 }
 
 .dish-price {
@@ -195,13 +195,13 @@ export default {
 
 .label {
   font-size: 28rpx;
-  color: #666666;
+  color: #6A625B;
   font-weight: bold;
 }
 
 .content {
   font-size: 28rpx;
-  color: #999999;
+  color: #6A625B;
   line-height: 1.6;
 }
 
@@ -221,13 +221,13 @@ export default {
 .quantity-btn {
   width: 60rpx;
   height: 60rpx;
-  border: 2rpx solid #e0e0e0;
+  border: 2rpx solid #E2D8CC;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 32rpx;
-  color: #666666;
+  color: #6A625B;
 }
 
 .quantity-value {
@@ -244,7 +244,7 @@ export default {
   right: 0;
   background-color: #ffffff;
   padding: 20rpx;
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -8rpx 24rpx rgba(123, 91, 68, 0.06);
 }
 
 .total-price {

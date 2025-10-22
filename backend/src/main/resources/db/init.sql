@@ -5,6 +5,21 @@ CREATE DATABASE IF NOT EXISTS `home_ordering` DEFAULT CHARACTER SET utf8mb4 COLL
 
 USE `home_ordering`;
 
+-- 菜品分类表
+DROP TABLE IF EXISTS `category`;
+CREATE TABLE `category` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` VARCHAR(50) NOT NULL COMMENT '分类名称',
+  `icon_url` VARCHAR(500) DEFAULT NULL COMMENT '图标',
+  `sort` INT NOT NULL DEFAULT 0 COMMENT '排序，越小越靠前',
+  `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0-停用 1-启用',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_name` (`name`),
+  INDEX `idx_status_sort` (`status`, `sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜品分类表';
+
 -- 用户表
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (

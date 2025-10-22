@@ -292,15 +292,15 @@ export default {
   flex: 1;
   text-align: center;
   padding: 16rpx 0;
-  background-color: #f0f0f0;
-  border-radius: 8rpx;
+  background-color: #F6F3EF;
+  border-radius: 999rpx;
   font-size: 26rpx;
-  color: #666666;
+  color: #6A625B;
   transition: all 0.3s;
 }
 
 .filter-item.active {
-  background-color: #FF6B6B;
+  background-color: #7B5B44;
   color: #ffffff;
   font-weight: bold;
 }
@@ -315,6 +315,8 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(123, 91, 68, 0.06);
 }
 
 .order-header {
@@ -325,7 +327,7 @@ export default {
 
 .order-no {
   font-size: 24rpx;
-  color: #999999;
+  color: #A39A92;
 }
 
 .order-dishes {
@@ -343,14 +345,14 @@ export default {
 .dish-image {
   width: 100rpx;
   height: 100rpx;
-  border-radius: 8rpx;
+  border-radius: 12rpx;
   flex-shrink: 0;
 }
 
 .placeholder-image {
-  background-color: #f0f0f0;
+  background-color: #EFE7DD;
   font-size: 20rpx;
-  color: #999999;
+  color: #A39A92;
 }
 
 .dish-info {
@@ -362,12 +364,12 @@ export default {
 
 .dish-name {
   font-size: 28rpx;
-  color: #333333;
+  color: #2E2A27;
 }
 
 .dish-price {
   font-size: 24rpx;
-  color: #999999;
+  color: #6A625B;
 }
 
 .order-footer {
@@ -375,17 +377,17 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding-top: 12rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid #EFE7DD;
 }
 
 .order-time {
   font-size: 24rpx;
-  color: #999999;
+  color: #A39A92;
 }
 
 .order-total {
   font-size: 28rpx;
-  color: #333333;
+  color: #2E2A27;
 }
 
 .order-actions {
@@ -397,7 +399,7 @@ export default {
 .action-btn {
   padding: 16rpx 32rpx;
   font-size: 26rpx;
-  border-radius: 8rpx;
+  border-radius: 999rpx;
 }
 
 .empty-state {

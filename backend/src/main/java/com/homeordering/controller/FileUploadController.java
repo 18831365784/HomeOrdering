@@ -2,6 +2,7 @@ package com.homeordering.controller;
 
 import com.homeordering.common.Result;
 import com.homeordering.service.FileUploadService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,20 @@ public class FileUploadController {
     public Result<String> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
             String fileUrl = fileUploadService.uploadFile(file);
+            return Result.success("文件上传成功", fileUrl);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("文件上传失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 上传分类图标到 uploads/icon 目录
+     */
+    @PostMapping("/upload/icon")
+    public Result<String> uploadCategoryIcon(@RequestParam("file") MultipartFile file) {
+        try {
+            String fileUrl = fileUploadService.uploadFile(file, "icon");
             return Result.success("文件上传成功", fileUrl);
         } catch (Exception e) {
             e.printStackTrace();

@@ -7,6 +7,12 @@
       }
     },
     {
+      "path": "pages/category/manage",
+      "style": {
+        "navigationBarTitleText": "分类管理"
+      }
+    },
+    {
       "path": "pages/dish/detail",
       "style": {
         "navigationBarTitleText": "菜品详情"

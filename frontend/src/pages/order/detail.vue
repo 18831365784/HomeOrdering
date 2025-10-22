@@ -207,6 +207,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 24rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(123, 91, 68, 0.06);
 }
 
 .status-icon {
@@ -222,18 +224,18 @@ export default {
 .status-text {
   font-size: 36rpx;
   font-weight: bold;
-  color: #333333;
+  color: #2E2A27;
 }
 
 .order-no {
   font-size: 24rpx;
-  color: #999999;
+  color: #A39A92;
 }
 
 .card-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333333;
+  color: #2E2A27;
   margin-bottom: 20rpx;
   display: block;
 }
@@ -258,14 +260,14 @@ export default {
 .dish-image {
   width: 100rpx;
   height: 100rpx;
-  border-radius: 8rpx;
+  border-radius: 12rpx;
   flex-shrink: 0;
 }
 
 .placeholder-image {
-  background-color: #f0f0f0;
+  background-color: #EFE7DD;
   font-size: 20rpx;
-  color: #999999;
+  color: #A39A92;
 }
 
 .dish-info {
@@ -277,13 +279,13 @@ export default {
 
 .dish-name {
   font-size: 28rpx;
-  color: #333333;
+  color: #2E2A27;
   font-weight: bold;
 }
 
 .dish-meta {
   font-size: 24rpx;
-  color: #999999;
+  color: #6A625B;
 }
 
 .dish-subtotal {
@@ -297,7 +299,7 @@ export default {
 
 .remark-content {
   font-size: 28rpx;
-  color: #666666;
+  color: #6A625B;
   line-height: 1.6;
 }
 
@@ -320,17 +322,17 @@ export default {
 
 .info-item.total {
   padding-top: 16rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid #EFE7DD;
 }
 
 .info-label {
   font-size: 28rpx;
-  color: #666666;
+  color: #6A625B;
 }
 
 .info-value {
   font-size: 28rpx;
-  color: #333333;
+  color: #2E2A27;
 }
 
 .action-buttons {
@@ -340,7 +342,7 @@ export default {
   right: 0;
   background-color: #ffffff;
   padding: 20rpx;
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -8rpx 24rpx rgba(123, 91, 68, 0.06);
   display: flex;
   gap: 20rpx;
 }

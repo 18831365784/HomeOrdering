@@ -68,6 +68,31 @@ const uploadFile = (filePath) => {
   })
 }
 
+// 上传分类图标到 uploads/icon
+const uploadIcon = (filePath) => {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: BASE_URL + '/file/upload/icon',
+      filePath: filePath,
+      name: 'file',
+      header: { 'ngrok-skip-browser-warning': 'true' },
+      success: (res) => {
+        const data = JSON.parse(res.data)
+        if (data.code === 200) {
+          resolve(data.data)
+        } else {
+          uni.showToast({ title: data.message || '上传失败', icon: 'none' })
+          reject(data)
+        }
+      },
+      fail: (err) => {
+        uni.showToast({ title: '上传失败', icon: 'none' })
+        reject(err)
+      }
+    })
+  })
+}
+
 // 菜品API
 export const dishApi = {
   // 获取菜品列表
@@ -156,6 +181,9 @@ export const fileApi = {
   // 上传文件
   upload(filePath) {
     return uploadFile(filePath)
+  },
+  uploadIcon(filePath) {
+    return uploadIcon(filePath)
   }
 }
 
@@ -178,9 +206,29 @@ export const userApi = {
   }
 }
 
+// 分类API
+export const categoryApi = {
+  // 获取分类列表
+  getList(status) {
+    const params = {}
+    if (status !== null && status !== undefined) {
+      params.status = status
+    }
+    return request('/category/list', {
+      method: 'GET',
+      data: params
+    })
+  },
+  // 新增/更新/删除（后台维护时可用）
+  add(data) { return request('/category', { method: 'POST', data }) },
+  update(data) { return request('/category', { method: 'PUT', data }) },
+  delete(id) { return request(`/category/${id}`, { method: 'DELETE' }) }
+}
+
 export default {
   dishApi,
   orderApi,
   fileApi,
-  userApi
+  userApi,
+  categoryApi
 }
