@@ -30,6 +30,13 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
     @Value("${server.port:8080}")
     private String serverPort;
 
+    @Value("${server.servlet.context-path:}")
+    private String contextPath;
+    
+    // 注入服务器地址，支持配置文件中设置完整URL
+    @Value("${server.url}")
+    private String serverUrl;
+
     @Override
     public String uploadFile(MultipartFile file) throws Exception {
         if (file == null || file.isEmpty()) {
@@ -64,8 +71,13 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
         Path filePath = Paths.get(uploadPath, fileName);
         Files.write(filePath, file.getBytes());
 
-        // 返回访问URL
-        return "http://localhost:" + serverPort + "/api/uploads/" + fileName;
+        // 返回完整URL路径，供前端通过HTTP访问
+        // 移除serverUrl末尾可能存在的斜杠，确保URL格式正确
+        String baseUrl = serverUrl;
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        return baseUrl + contextPath + "/uploads/" + fileName;
     }
 
     /**

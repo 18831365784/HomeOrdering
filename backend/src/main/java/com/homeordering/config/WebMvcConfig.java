@@ -6,6 +6,8 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.File;
+
 /**
  * Web MVC配置
  */
@@ -20,9 +22,27 @@ public class WebMvcConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 将相对路径转换为绝对路径
+        String absoluteUploadPath = uploadPath;
+        if (uploadPath.startsWith("./") || uploadPath.startsWith(".\\")) {
+            // 获取项目根目录
+            String projectPath = System.getProperty("user.dir");
+            absoluteUploadPath = projectPath + File.separator + uploadPath.substring(2);
+        }
+        
+        // 确保路径以文件协议和斜杠结尾
+        if (!absoluteUploadPath.startsWith("file:")) {
+            absoluteUploadPath = "file:" + absoluteUploadPath;
+        }
+        if (!absoluteUploadPath.endsWith("/") && !absoluteUploadPath.endsWith("\\")) {
+            absoluteUploadPath += "/";
+        }
+        
+        System.out.println("Upload path mapped to: " + absoluteUploadPath);
+        
         // 映射图片访问路径
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + uploadPath);
+                .addResourceLocations(absoluteUploadPath);
     }
 
     /**
