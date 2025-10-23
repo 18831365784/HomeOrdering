@@ -204,7 +204,7 @@ export default {
 .status { font-size: 24rpx; color:#A39A92; }
 .status.on { color:#7BB662; }
 .actions { display:flex; gap: 8rpx; }
-.action-btn { padding: 12rpx 20rpx; border-radius: 20rpx; font-size: 24rpx; border: none; min-width: 80rpx; }
+.action-btn { padding: 3rpx 20rpx 0rpx; border-radius: 20rpx; font-size: 24rpx; border: none; min-width: 80rpx; }
 .toggle-btn { background: #F6F3EF; color: #6A625B; }
 .toggle-btn.btn-on { background: #7BB662; color: #fff; }
 .edit-btn { background: #7B5B44; color: #fff; }

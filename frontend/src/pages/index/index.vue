@@ -500,10 +500,19 @@ export default {
   background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
   color: #fff;
   border: none;
-  border-radius: 999rpx;
-  padding: 12rpx 24rpx;
+  border-radius: 16rpx;
+  padding: 0rpx 20rpx;
   font-size: 24rpx;
-  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.25);
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.3);
+  transition: all 0.2s ease;
+  min-width: 70rpx;
+  text-align: center;
+}
+
+.choose-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(123, 91, 68, 0.4);
 }
 
 .empty-state {

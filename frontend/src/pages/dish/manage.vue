@@ -32,10 +32,10 @@
     </view>
 
     <!-- 编辑/新增弹窗 -->
-    <view v-if="showModal" class="modal-mask" @touchmove.stop>
-      <view class="modal-card card">
+    <view v-if="showModal" class="modal-mask" @touchmove.stop.prevent>
+      <view class="modal-card card" @touchmove.stop>
         <view class="modal-title">{{ form.id ? '编辑菜品' : '新增菜品' }}</view>
-        <view class="modal-body">
+        <scroll-view class="modal-body" scroll-y="true" enable-back-to-top="true">
           <input class="modal-input" placeholder="菜品名称" v-model="form.name" />
           <input class="modal-input" placeholder="菜品价格" v-model="form.price" type="number" />
           <input class="modal-input" placeholder="菜品描述" v-model="form.description" />
@@ -83,7 +83,7 @@
                   <input class="modal-input" placeholder="占位提示" v-model="opt.placeholder" />
                 </view>
                 
-                <view v-if="opt.selectionType==='single' || opt.selectionType==='multiple'" class="choices">
+                <view v-if="opt.selectionType==='single' || opt.selectionType==='multiple' || opt.selectionType==='node'" class="choices">
                   <view class="choices-header">
                     <text>选择项</text>
                     <button class="small-btn" @click="addChoice(oi)">＋ 添加选择项</button>
@@ -108,7 +108,7 @@
               </view>
             </view>
           </view>
-        </view>
+        </scroll-view>
         <view class="modal-actions">
           <button class="modal-btn cancel-btn" @click="close">取消</button>
           <button class="modal-btn save-btn" @click="save">保存</button>
@@ -138,8 +138,8 @@ export default {
       form: { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, status: 1, sort: 0, extensions: '' },
       useVisualEditor: true,
       vizOptions: [],
-      selectionTypes: ['single','multiple','input','number','boolean','free_list'],
-      selectionTypeLabels: ['单选','多选','文本输入','数字输入','开关','自由列表'],
+      selectionTypes: ['single','multiple','input','number','boolean','node'],
+      selectionTypeLabels: ['单选','多选','文本输入','数字输入','开关','节点'],
       dragStartIndex: -1,
       dragOverIndex: -1,
       isDragging: false
@@ -432,15 +432,21 @@ export default {
 .status { font-size: 24rpx; color:#A39A92; }
 .status.on { color:#7BB662; }
 .actions { display:flex; gap: 8rpx; }
-.action-btn { padding: 12rpx 20rpx; border-radius: 20rpx; font-size: 24rpx; border: none; min-width: 80rpx; }
+.action-btn { padding: 3rpx 20rpx 0rpx; border-radius: 20rpx; font-size: 24rpx; border: none; min-width: 80rpx; }
 .toggle-btn { background: #F6F3EF; color: #6A625B; }
 .toggle-btn.btn-on { background: #7BB662; color: #fff; }
 .edit-btn { background: #7B5B44; color: #fff; }
 .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:2000; }
-.modal-card { width: 640rpx; max-height: 80vh; display: flex; flex-direction: column; }
-.modal-body { flex: 1; overflow-y: auto; }
-.modal-title { font-size: 32rpx; font-weight: bold; color:#2E2A27; margin-bottom: 20rpx; }
-.modal-body { display:flex; flex-direction: column; gap: 20rpx; }
+.modal-card { width: 640rpx; max-height: 80vh; display: flex; flex-direction: column; background: #fff; border-radius: 24rpx; overflow: hidden; }
+.modal-title { font-size: 32rpx; font-weight: bold; color:#2E2A27; margin: 20rpx 20rpx 0 20rpx; flex-shrink: 0; }
+.modal-body { 
+  height: 80vh;
+  padding: 20rpx; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 20rpx; 
+}
+.modal-actions { display:flex; gap: 16rpx; margin: 0 20rpx 20rpx 20rpx; flex-shrink: 0; }
 .modal-input { background:#F6F3EF; border-radius: 16rpx; padding: 20rpx; font-size: 28rpx; }
 .upload-row { display:flex; align-items:center; gap: 16rpx; }
 .upload-btn { padding: 12rpx 20rpx; border-radius: 20rpx; font-size: 24rpx; background: #F6F3EF; color: #6A625B; border: none; }

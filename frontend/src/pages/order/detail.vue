@@ -30,6 +30,16 @@
             </view>
             <view class="dish-info">
               <text class="dish-name">{{ detail.dishName }}</text>
+              <!-- 显示该菜品的扩展选项 -->
+              <view v-if="getDishOptions(detail.dishName)" class="dish-options">
+                <text 
+                  v-for="option in getDishOptions(detail.dishName)" 
+                  :key="option.key" 
+                  class="option-text"
+                >
+                  {{ option.key }}: {{ option.value }}
+                </text>
+              </view>
               <text class="dish-meta">¥{{ detail.dishPrice }} x {{ detail.quantity }}</text>
             </view>
             <text class="dish-subtotal price-small">¥{{ detail.subtotal }}</text>
@@ -38,25 +48,9 @@
       </view>
       
       <!-- 备注信息 -->
-      <view v-if="order.remark" class="remark-card card">
+      <view v-if="order.remark && formatRemark(order.remark).trim()" class="remark-card card">
         <text class="card-title">备注信息</text>
         <text class="remark-content">{{ formatRemark(order.remark) }}</text>
-      </view>
-      
-      <!-- 扩展选项信息 -->
-      <view v-if="extractedOptions.length > 0" class="options-card card">
-        <text class="card-title">菜品选项</text>
-        <view class="options-list">
-          <view v-for="option in extractedOptions" :key="option.dishName" class="option-group">
-            <text class="dish-name">{{ option.dishName }}({{ option.quantity }}份)</text>
-            <view class="option-items">
-              <view v-for="item in option.items" :key="item.key" class="option-item">
-                <text class="option-label">{{ item.key }}:</text>
-                <text class="option-value">{{ item.value }}</text>
-              </view>
-            </view>
-          </view>
-        </view>
       </view>
       
       <!-- 订单信息 -->
@@ -264,10 +258,12 @@ export default {
         if (skipOptions && line.trim() === '') {
           continue
         }
-        if (skipOptions && line.match(/^\s*\w+\(\d+份\):/)) {
+        // 修复：支持中文菜品名
+        if (skipOptions && line.match(/^\s*.+\(\d+份\):$/)) {
           continue
         }
-        if (skipOptions && line.match(/^\s*\w+:/)) {
+        // 修复：支持中文选项名
+        if (skipOptions && line.match(/^\s*.+:\s*.+$/)) {
           continue
         }
         if (skipOptions && line.trim() === '') {
@@ -282,9 +278,17 @@ export default {
       return filteredLines.join('\n').trim()
     },
     
+    // 获取特定菜品的扩展选项
+    getDishOptions(dishName) {
+      const option = this.extractedOptions.find(opt => opt.dishName === dishName)
+      return option ? option.items : null
+    },
+    
     // 从备注中提取扩展选项信息
     extractOptionsFromRemark(remark) {
       if (!remark) return []
+      
+      console.log('开始解析备注:', remark)
       
       const options = []
       const lines = remark.split('\n')
@@ -292,33 +296,39 @@ export default {
       let inOptionsSection = false
       
       for (const line of lines) {
+        console.log('处理行:', line)
+        
+        // 修复：匹配【菜品选项】: 格式（带冒号）
         if (line.includes('【菜品选项】')) {
           inOptionsSection = true
+          console.log('进入选项解析区域')
           continue
         }
         
         if (inOptionsSection) {
-          // 匹配菜品名称(数量份): 格式
-          const dishMatch = line.match(/^(\w+)\((\d+)份\):$/)
+          // 修复：匹配菜品名称(数量份): 格式，支持中文菜品名
+          const dishMatch = line.match(/^(.+)\((\d+)份\):$/)
           if (dishMatch) {
             if (currentOption) {
               options.push(currentOption)
             }
             currentOption = {
-              dishName: dishMatch[1],
+              dishName: dishMatch[1].trim(),
               quantity: parseInt(dishMatch[2]),
               items: []
             }
+            console.log('找到菜品:', currentOption.dishName, '数量:', currentOption.quantity)
             continue
           }
           
-          // 匹配选项: 值 格式
-          const optionMatch = line.match(/^\s+(\w+):\s*(.+)$/)
+          // 修复：匹配选项: 值 格式，支持中文选项名
+          const optionMatch = line.match(/^\s+(.+?):\s*(.+)$/)
           if (optionMatch && currentOption) {
             currentOption.items.push({
-              key: optionMatch[1],
-              value: optionMatch[2]
+              key: optionMatch[1].trim(),
+              value: optionMatch[2].trim()
             })
+            console.log('找到选项:', optionMatch[1], '值:', optionMatch[2])
           }
         }
       }
@@ -327,6 +337,7 @@ export default {
         options.push(currentOption)
       }
       
+      console.log('解析结果:', options)
       return options
     }
   }
@@ -420,6 +431,18 @@ export default {
   font-weight: bold;
 }
 
+.dish-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.option-text {
+  font-size: 24rpx;
+  color: #7B5B44;
+  font-weight: 500;
+}
+
 .dish-meta {
   font-size: 24rpx;
   color: #6A625B;
@@ -478,14 +501,23 @@ export default {
   left: 0;
   right: 0;
   background-color: #ffffff;
-  padding: 20rpx;
+  padding: 16rpx 20rpx;
   box-shadow: 0 -8rpx 24rpx rgba(123, 91, 68, 0.06);
   display: flex;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
 .action-buttons .btn {
   flex: 1;
+  padding: 12rpx 16rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  border-radius: 12rpx;
+  transition: all 0.2s ease;
+}
+
+.action-buttons .btn:active {
+  transform: scale(0.98);
 }
 
 .loading {
@@ -495,57 +527,5 @@ export default {
   padding: 200rpx 0;
   color: #999999;
   font-size: 28rpx;
-}
-
-/* 扩展选项样式 */
-.options-card {
-  margin: 0 20rpx 20rpx;
-  padding: 24rpx;
-}
-
-.options-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-.option-group {
-  background: #F8F6F3;
-  border-radius: 16rpx;
-  padding: 20rpx;
-  border-left: 4rpx solid #7B5B44;
-}
-
-.dish-name {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #2E2A27;
-  margin-bottom: 12rpx;
-  display: block;
-}
-
-.option-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.option-item {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.option-label {
-  font-size: 24rpx;
-  color: #6A625B;
-  font-weight: bold;
-  min-width: 80rpx;
-}
-
-.option-value {
-  font-size: 24rpx;
-  color: #2E2A27;
-  flex: 1;
 }
 </style>

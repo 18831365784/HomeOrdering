@@ -35,7 +35,7 @@
         <text class="label">可选项</text>
         <view class="options-list">
           <view v-for="opt in extOptions" :key="opt.id" class="option-group">
-            <text class="option-title">{{ opt.name }}<text v-if="opt.required" style="color:#E56C6C"> *</text></text>
+            <text v-if="opt.selectionType !== 'node'" class="option-title">{{ opt.name }}<text v-if="opt.required" style="color:#E56C6C"> *</text></text>
             <view v-if="opt.selectionType === 'single' && Array.isArray(opt.choices)" class="chips">
               <view v-for="c in opt.choices" :key="c.id" class="chip" :class="{active: selected[opt.id]===c.id}" @click="selectSingle(opt.id, c.id)">
                 <text>{{ c.name }}</text>
@@ -59,8 +59,14 @@
               <view class="chip" :class="{active: selected[opt.id]===true}" @click="selected[opt.id]=true">是</view>
               <view class="chip" :class="{active: selected[opt.id]===false}" @click="selected[opt.id]=false">否</view>
             </view>
+            <view v-else-if="opt.selectionType === 'node'" class="chips">
+              <view v-for="c in (opt.choices||[])" :key="c.id" class="chip" :class="{active: selected[opt.id]===c.id}" @click="toggleNode(opt.id, c.id)">
+                <text>{{ c.name }}</text>
+                <text v-if="c.price>0" class="chip-price">+¥{{ c.price }}</text>
+              </view>
+            </view>
             <view v-else>
-              <!-- free_list 或未知：给一个文本输入，逗号分隔 -->
+              <!-- 未知类型：给一个文本输入，逗号分隔 -->
               <input class="option-input" placeholder="可输入多个，用逗号分隔" v-model="selected[opt.id]" />
             </view>
           </view>
@@ -197,6 +203,10 @@ export default {
               const ch = opt.choices.find(c => c.id === cid)
               return ch ? ch.name : cid
             })
+          } else if (opt.selectionType === 'node') {
+            const cid = this.selected[opt.id]
+            const ch = opt.choices && opt.choices.find(c => c.id === cid)
+            out[label] = ch ? ch.name : (this.selected[opt.id] || '')
           } else {
             out[label] = this.selected[opt.id]
           }
@@ -256,6 +266,16 @@ export default {
       }
       this.selected[optId] = arr
       this.$forceUpdate() // 强制更新视图
+    },
+    toggleNode(optId, choiceId) {
+      if (this.selected[optId] === choiceId) {
+        // 如果已选中，则取消选择
+        this.selected[optId] = null
+      } else {
+        // 如果未选中，则选择
+        this.selected[optId] = choiceId
+      }
+      this.$forceUpdate()
     },
     
     // 立即下单
