@@ -56,14 +56,24 @@ public class OrderServiceImpl implements OrderService {
             if (dish == null) {
                 throw new RuntimeException("菜品不存在：" + item.getDishId());
             }
+            
+            System.out.println("订单项 - 菜品ID: " + item.getDishId() + 
+                             ", 数量: " + item.getQuantity() + 
+                             ", 前端单价: " + item.getUnitPrice() + 
+                             ", 菜品基础价格: " + dish.getPrice());
 
             OrderDetail detail = new OrderDetail();
             detail.setDishId(dish.getId());
             detail.setDishName(dish.getName());
             detail.setDishImage(dish.getImageUrl());
-            detail.setDishPrice(dish.getPrice());
+            
+            // 使用前端传递的实际单价（包含选项价格），如果没有则使用菜品基础价格
+            BigDecimal actualUnitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : dish.getPrice();
+            detail.setDishPrice(actualUnitPrice);
             detail.setQuantity(item.getQuantity());
-            detail.setSubtotal(dish.getPrice().multiply(new BigDecimal(item.getQuantity())));
+            detail.setSubtotal(actualUnitPrice.multiply(new BigDecimal(item.getQuantity())));
+            
+            System.out.println("订单详情 - 实际单价: " + actualUnitPrice + ", 小计: " + detail.getSubtotal());
 
             orderDetails.add(detail);
             totalAmount = totalAmount.add(detail.getSubtotal());

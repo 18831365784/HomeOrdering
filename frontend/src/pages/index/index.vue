@@ -73,11 +73,16 @@
               </view>
             </view>
             
-            <!-- 添加按钮 -->
-            <view class="dish-action" @click.stop="addToCart(dish)">
-              <view class="add-btn">
-                <text class="add-plus">＋</text>
-              </view>
+            <!-- 添加/选择按钮：有扩展项则展示“选择”并跳详情 -->
+            <view class="dish-action">
+              <block v-if="needChoose(dish)">
+                <button class="choose-btn" @click.stop="goToDetail(dish.id)">选择</button>
+              </block>
+              <block v-else>
+                <view class="add-btn" @click.stop="addToCart(dish)">
+                  <text class="add-plus">＋</text>
+                </view>
+              </block>
             </view>
           </view>
           
@@ -142,6 +147,21 @@ export default {
   },
   
   methods: {
+    // 是否需要进入详情选择
+    needChoose(dish) {
+      if (!dish) return false
+      const ext = dish.extensions
+      if (!ext) return false
+      let obj = null
+      if (typeof ext === 'string') {
+        try { obj = JSON.parse(ext) } catch (e) { return false }
+      } else if (typeof ext === 'object') {
+        obj = ext
+      }
+      if (!obj) return false
+      const options = Array.isArray(obj.options) ? obj.options : []
+      return options.length > 0
+    },
     
     // 判断是否为图片URL（支持 http/https 以及 /uploads 开头的后端静态资源）
     isImageUrl(v) {
@@ -474,6 +494,16 @@ export default {
 .add-plus { 
   line-height: 1; 
   margin-top: -2rpx; /* 微调加号位置 */
+}
+
+.choose-btn {
+  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
+  color: #fff;
+  border: none;
+  border-radius: 999rpx;
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.25);
 }
 
 .empty-state {

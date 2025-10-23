@@ -52,6 +52,11 @@ public class Dish implements Serializable {
     private Integer status;
 
     /**
+     * 扩展选项配置（JSON字符串）
+     */
+    private String extensions;
+
+    /**
      * 排序，越小越靠前
      */
     private Integer sort;

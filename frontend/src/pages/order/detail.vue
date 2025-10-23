@@ -40,7 +40,23 @@
       <!-- 备注信息 -->
       <view v-if="order.remark" class="remark-card card">
         <text class="card-title">备注信息</text>
-        <text class="remark-content">{{ order.remark }}</text>
+        <text class="remark-content">{{ formatRemark(order.remark) }}</text>
+      </view>
+      
+      <!-- 扩展选项信息 -->
+      <view v-if="extractedOptions.length > 0" class="options-card card">
+        <text class="card-title">菜品选项</text>
+        <view class="options-list">
+          <view v-for="option in extractedOptions" :key="option.dishName" class="option-group">
+            <text class="dish-name">{{ option.dishName }}({{ option.quantity }}份)</text>
+            <view class="option-items">
+              <view v-for="item in option.items" :key="item.key" class="option-item">
+                <text class="option-label">{{ item.key }}:</text>
+                <text class="option-value">{{ item.value }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
       </view>
       
       <!-- 订单信息 -->
@@ -99,7 +115,8 @@ export default {
     return {
       orderId: null,
       order: null,
-      isAdmin: false
+      isAdmin: false,
+      extractedOptions: []
     }
   },
   
@@ -126,6 +143,8 @@ export default {
           ...order,
           statusText: this.getStatusText(order.status)
         }
+        // 提取扩展选项信息
+        this.extractedOptions = this.extractOptionsFromRemark(order.remark)
       } catch (error) {
         console.error('加载订单详情失败:', error)
         uni.showToast({
@@ -227,6 +246,88 @@ export default {
         return result
       }
       return timeStr
+    },
+    
+    // 格式化备注，移除扩展选项部分
+    formatRemark(remark) {
+      if (!remark) return ''
+      // 移除【菜品选项】部分，只保留用户原始备注
+      const lines = remark.split('\n')
+      const filteredLines = []
+      let skipOptions = false
+      
+      for (const line of lines) {
+        if (line.includes('【菜品选项】')) {
+          skipOptions = true
+          continue
+        }
+        if (skipOptions && line.trim() === '') {
+          continue
+        }
+        if (skipOptions && line.match(/^\s*\w+\(\d+份\):/)) {
+          continue
+        }
+        if (skipOptions && line.match(/^\s*\w+:/)) {
+          continue
+        }
+        if (skipOptions && line.trim() === '') {
+          skipOptions = false
+          continue
+        }
+        if (!skipOptions) {
+          filteredLines.push(line)
+        }
+      }
+      
+      return filteredLines.join('\n').trim()
+    },
+    
+    // 从备注中提取扩展选项信息
+    extractOptionsFromRemark(remark) {
+      if (!remark) return []
+      
+      const options = []
+      const lines = remark.split('\n')
+      let currentOption = null
+      let inOptionsSection = false
+      
+      for (const line of lines) {
+        if (line.includes('【菜品选项】')) {
+          inOptionsSection = true
+          continue
+        }
+        
+        if (inOptionsSection) {
+          // 匹配菜品名称(数量份): 格式
+          const dishMatch = line.match(/^(\w+)\((\d+)份\):$/)
+          if (dishMatch) {
+            if (currentOption) {
+              options.push(currentOption)
+            }
+            currentOption = {
+              dishName: dishMatch[1],
+              quantity: parseInt(dishMatch[2]),
+              items: []
+            }
+            continue
+          }
+          
+          // 匹配选项: 值 格式
+          const optionMatch = line.match(/^\s+(\w+):\s*(.+)$/)
+          if (optionMatch && currentOption) {
+            currentOption.items.push({
+              key: optionMatch[1],
+              value: optionMatch[2]
+            })
+          }
+        }
+      }
+      
+      if (currentOption) {
+        options.push(currentOption)
+      }
+      
+      return options
     }
   }
 }
@@ -394,5 +495,57 @@ export default {
   padding: 200rpx 0;
   color: #999999;
   font-size: 28rpx;
+}
+
+/* 扩展选项样式 */
+.options-card {
+  margin: 0 20rpx 20rpx;
+  padding: 24rpx;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.option-group {
+  background: #F8F6F3;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  border-left: 4rpx solid #7B5B44;
+}
+
+.dish-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #2E2A27;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.option-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.option-label {
+  font-size: 24rpx;
+  color: #6A625B;
+  font-weight: bold;
+  min-width: 80rpx;
+}
+
+.option-value {
+  font-size: 24rpx;
+  color: #2E2A27;
+  flex: 1;
 }
 </style>

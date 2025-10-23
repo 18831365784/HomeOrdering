@@ -15,20 +15,29 @@ class CartManager {
     uni.setStorageSync(this.storageKey, cart)
   }
   
-  // 添加到购物车
-  addToCart(dish, quantity = 1) {
+  // 生成键：同菜品不同选项应视为不同项
+  buildKey(dishId, selectedOptions) {
+    if (!selectedOptions || Object.keys(selectedOptions).length === 0) return String(dishId)
+    try { return dishId + '|' + JSON.stringify(selectedOptions) } catch (e) { return String(dishId) }
+  }
+
+  // 添加到购物车（可传入单价，包含选项加价后的单份价格）
+  addToCart(dish, quantity = 1, selectedOptions = null, unitPrice = null) {
     const cart = this.getCart()
-    const existingItem = cart.find(item => item.id === dish.id)
+    const key = this.buildKey(dish.id, selectedOptions)
+    const existingItem = cart.find(item => item.key === key)
     
     if (existingItem) {
       existingItem.quantity += quantity
     } else {
       cart.push({
+        key,
         id: dish.id,
         name: dish.name,
         imageUrl: dish.imageUrl,
-        price: dish.price,
-        quantity: quantity
+        price: unitPrice != null ? Number(unitPrice) : Number(dish.price),
+        quantity: quantity,
+        selectedOptions: selectedOptions || null
       })
     }
     
@@ -36,14 +45,14 @@ class CartManager {
     return cart
   }
   
-  // 更新购物车项数量
-  updateQuantity(dishId, quantity) {
+  // 更新购物车项数量（按key）
+  updateQuantityByKey(key, quantity) {
     const cart = this.getCart()
-    const item = cart.find(item => item.id === dishId)
+    const item = cart.find(item => item.key === key)
     
     if (item) {
       if (quantity <= 0) {
-        this.removeFromCart(dishId)
+        this.removeFromCart(key)
       } else {
         item.quantity = quantity
         this.saveCart(cart)
@@ -53,8 +62,33 @@ class CartManager {
     return cart
   }
   
-  // 从购物车移除
-  removeFromCart(dishId) {
+  // 更新购物车项数量（按dishId，兼容旧版本）
+  updateQuantity(dishId, quantity) {
+    const cart = this.getCart()
+    const item = cart.find(item => item.id === dishId)
+    
+    if (item) {
+      if (quantity <= 0) {
+        this.removeFromCartByDishId(dishId)
+      } else {
+        item.quantity = quantity
+        this.saveCart(cart)
+      }
+    }
+    
+    return cart
+  }
+  
+  // 从购物车移除（按key删除，支持扩展选项）
+  removeFromCart(key) {
+    let cart = this.getCart()
+    cart = cart.filter(item => item.key !== key)
+    this.saveCart(cart)
+    return cart
+  }
+  
+  // 从购物车移除（按dishId删除，兼容旧版本）
+  removeFromCartByDishId(dishId) {
     let cart = this.getCart()
     cart = cart.filter(item => item.id !== dishId)
     this.saveCart(cart)

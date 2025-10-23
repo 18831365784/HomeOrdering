@@ -50,6 +50,64 @@
               <view class="picker-text">{{ selectedCategoryName }}</view>
             </picker>
           </view>
+          
+          <!-- 扩展项设置（仅可视化） -->
+          <view class="extensions-editor">
+            <view class="viz-editor">
+              <view class="viz-toolbar">
+                <button class="small-btn" @click="addOption">＋ 添加选项</button>
+              </view>
+              <view v-if="vizOptions.length===0" class="text-muted">暂无选项，点击“添加选项”开始配置</view>
+              <view v-for="(opt, oi) in vizOptions" :key="opt.__uid" class="viz-option">
+                <view class="row">
+                  <text class="option-id-label">选项ID: {{ opt.id }}</text>
+                  <input class="modal-input" placeholder="选项名称(如：辣度)" v-model="opt.name" />
+                </view>
+                <view class="row">
+                  <picker :range="selectionTypeLabels" :value="selectionTypes.indexOf(opt.selectionType)" @change="e=>changeType(oi, e.detail.value)">
+                    <view class="picker-text">类型：{{ getSelectionTypeLabel(opt.selectionType) }}</view>
+                  </picker>
+                  <label class="switch">
+                    <switch :checked="!!opt.required" @change="e=>opt.required=e.detail.value" /> 必填
+                  </label>
+                </view>
+                <view v-if="opt.selectionType==='multiple'" class="row">
+                  <input class="modal-input" type="number" placeholder="最少(min)" v-model.number="opt.min" />
+                  <input class="modal-input" type="number" placeholder="最多(max)" v-model.number="opt.max" />
+                </view>
+                <view v-if="opt.selectionType==='input'" class="row">
+                  <input class="modal-input" placeholder="占位提示" v-model="opt.placeholder" />
+                </view>
+                <view v-if="opt.selectionType==='number'" class="row">
+                  <input class="modal-input" placeholder="单位(如：杯/份)" v-model="opt.unit" />
+                  <input class="modal-input" placeholder="占位提示" v-model="opt.placeholder" />
+                </view>
+                
+                <view v-if="opt.selectionType==='single' || opt.selectionType==='multiple'" class="choices">
+                  <view class="choices-header">
+                    <text>选择项</text>
+                    <button class="small-btn" @click="addChoice(oi)">＋ 添加选择项</button>
+                  </view>
+                  <view v-if="!Array.isArray(opt.choices) || opt.choices.length===0" class="text-muted">暂无选择项</view>
+                  <view v-for="(c, ci) in (opt.choices||[])" :key="c.__uid" class="choice-row">
+                    <text class="choice-id-label">选择项ID: {{ c.id }}</text>
+                    <input class="modal-input" placeholder="选择项名称" v-model="c.name" />
+                    <input class="modal-input" type="number" placeholder="加价(可选)" v-model.number="c.price" />
+                    <button class="tiny-btn" @click="moveChoice(oi, ci, -1)">↑</button>
+                    <button class="tiny-btn" @click="moveChoice(oi, ci, 1)">↓</button>
+                    <button class="tiny-btn danger" @click="removeChoice(oi, ci)">删</button>
+                  </view>
+                </view>
+
+                <view class="opt-actions">
+                  <button class="tiny-btn" @click="moveOption(oi, -1)">↑上移</button>
+                  <button class="tiny-btn" @click="moveOption(oi, 1)">↓下移</button>
+                  <button class="tiny-btn danger" @click="removeOption(oi)">删除选项</button>
+                </view>
+                <view class="divider" />
+              </view>
+            </view>
+          </view>
         </view>
         <view class="modal-actions">
           <button class="modal-btn cancel-btn" @click="close">取消</button>
@@ -77,7 +135,11 @@ export default {
       categoryNames: [],
       categoryIndex: 0,
       showModal: false,
-      form: { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, status: 1, sort: 0 },
+      form: { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, status: 1, sort: 0, extensions: '' },
+      useVisualEditor: true,
+      vizOptions: [],
+      selectionTypes: ['single','multiple','input','number','boolean','free_list'],
+      selectionTypeLabels: ['单选','多选','文本输入','数字输入','开关','自由列表'],
       dragStartIndex: -1,
       dragOverIndex: -1,
       isDragging: false
@@ -93,6 +155,89 @@ export default {
     this.loadCategories()
   },
   methods: {
+    // 可视化编辑器：帮助函数
+    parseExtensionsToViz(extensions) {
+      try {
+        const obj = typeof extensions === 'string' ? JSON.parse(extensions || '{}') : (extensions || {})
+        const options = Array.isArray(obj.options) ? obj.options : []
+        return options.map(o => {
+          const option = this.withUids({ selectionType: 'single', required: false, choices: [], ...o })
+          // 如果没有ID，生成一个
+          if (!option.id) {
+            option.id = this.generateOptionId()
+          }
+          // 为选择项生成ID
+          if (Array.isArray(option.choices)) {
+            option.choices.forEach(choice => {
+              if (!choice.id) {
+                choice.id = `choice_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+              }
+            })
+          }
+          return option
+        })
+      } catch (e) {
+        return []
+      }
+    },
+    withUids(opt) {
+      const uid = Math.random().toString(36).slice(2, 9)
+      const out = { __uid: uid, ...opt }
+      if (Array.isArray(out.choices)) {
+        out.choices = out.choices.map(c => ({ __uid: Math.random().toString(36).slice(2, 9), ...c }))
+      }
+      return out
+    },
+    stripRuntimeFields(opt) {
+      const { __uid, ...pure } = opt
+      if (Array.isArray(pure.choices)) {
+        pure.choices = pure.choices.map(c => { const { __uid, ...pc } = c; return pc })
+      }
+      return pure
+    },
+    changeType(oi, idx) { this.vizOptions[oi].selectionType = this.selectionTypes[idx] },
+    getSelectionTypeLabel(type) {
+      const index = this.selectionTypes.indexOf(type)
+      return index >= 0 ? this.selectionTypeLabels[index] : type
+    },
+    generateOptionId() {
+      // 生成唯一的选项ID
+      const timestamp = Date.now().toString(36)
+      const random = Math.random().toString(36).substring(2, 8)
+      return `opt_${timestamp}_${random}`
+    },
+    addOption() { 
+      const newOption = this.withUids({ 
+        id: this.generateOptionId(), 
+        name: '', 
+        selectionType: 'single', 
+        required: false, 
+        choices: [] 
+      })
+      this.vizOptions.push(newOption)
+    },
+    removeOption(oi) { this.vizOptions.splice(oi, 1) },
+    moveOption(oi, delta) {
+      const ni = oi + delta
+      if (ni < 0 || ni >= this.vizOptions.length) return
+      const item = this.vizOptions.splice(oi, 1)[0]
+      this.vizOptions.splice(ni, 0, item)
+    },
+    addChoice(oi) {
+      const opt = this.vizOptions[oi]
+      if (!Array.isArray(opt.choices)) opt.choices = []
+      const choiceId = `choice_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+      opt.choices.push({ __uid: Math.random().toString(36).slice(2, 9), id: choiceId, name: '', price: 0 })
+    },
+    removeChoice(oi, ci) { const opt = this.vizOptions[oi]; if (!opt || !opt.choices) return; opt.choices.splice(ci, 1) },
+    moveChoice(oi, ci, delta) {
+      const opt = this.vizOptions[oi]
+      if (!opt || !Array.isArray(opt.choices)) return
+      const ni = ci + delta
+      if (ni < 0 || ni >= opt.choices.length) return
+      const item = opt.choices.splice(ci, 1)[0]
+      opt.choices.splice(ni, 0, item)
+    },
     async load() {
       try {
         this.dishes = await dishApi.getList()
@@ -110,15 +255,22 @@ export default {
     },
     
     openCreate() { 
-      this.form = { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, category: '', status: 1, sort: 0 }
+      this.form = { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, category: '', status: 1, sort: 0, extensions: '' }
       this.categoryIndex = 0
       this.form.categoryId = this.categories[0].id
       this.form.category = this.categories[0].name
+      this.vizOptions = []
+      this.useVisualEditor = true
       this.showModal = true 
     },
     
     edit(dish) { 
       this.form = { ...dish }
+      if (this.form.extensions && typeof this.form.extensions !== 'string') {
+        try { this.form.extensions = JSON.stringify(this.form.extensions) } catch (e) { this.form.extensions = '' }
+      }
+      this.vizOptions = this.parseExtensionsToViz(this.form.extensions)
+      this.useVisualEditor = true
       this.categoryIndex = this.categories.findIndex(c => c.name === dish.category)
       if (this.categoryIndex === -1) {
         this.categoryIndex = 0
@@ -165,6 +317,11 @@ export default {
         }
       }
       
+      // 仅可视化：把 vizOptions 序列化为 JSON 存储
+      if (true) {
+        const json = { options: this.vizOptions.map(o => this.stripRuntimeFields(o)) }
+        this.form.extensions = JSON.stringify(json)
+      }
       console.log('保存菜品数据:', this.form)
       
       try {
@@ -280,7 +437,8 @@ export default {
 .toggle-btn.btn-on { background: #7BB662; color: #fff; }
 .edit-btn { background: #7B5B44; color: #fff; }
 .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:2000; }
-.modal-card { width: 640rpx; }
+.modal-card { width: 640rpx; max-height: 80vh; display: flex; flex-direction: column; }
+.modal-body { flex: 1; overflow-y: auto; }
 .modal-title { font-size: 32rpx; font-weight: bold; color:#2E2A27; margin-bottom: 20rpx; }
 .modal-body { display:flex; flex-direction: column; gap: 20rpx; }
 .modal-input { background:#F6F3EF; border-radius: 16rpx; padding: 20rpx; font-size: 28rpx; }
@@ -296,4 +454,26 @@ export default {
 .save-btn { background: #7B5B44; color: #fff; }
 .fab-button { position: fixed; right: 40rpx; bottom: 120rpx; width: 100rpx; height: 100rpx; border-radius: 50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 10rpx 28rpx rgba(123,91,68,0.30); z-index: 1500; }
 .fab-icon { color:#fff; font-size: 60rpx; font-weight: bold; }
+
+.extensions-editor { display: flex; flex-direction: column; gap: 12rpx; margin-top: 20rpx; }
+.extensions-editor .label { font-size: 28rpx; color: #2E2A27; font-weight: bold; }
+.extensions-editor textarea { min-height: 120rpx; font-family: monospace; font-size: 24rpx; }
+.text-muted { font-size: 22rpx; color: #A39A92; }
+
+.editor-tabs { display:flex; gap: 12rpx; margin-bottom: 8rpx; }
+.tab-btn { background:#F6F3EF; color:#6A625B; border:none; border-radius: 16rpx; padding: 10rpx 20rpx; font-size: 24rpx; }
+.tab-btn.active { background:#7B5B44; color:#fff; }
+.viz-toolbar { display:flex; justify-content:flex-end; margin-bottom: 8rpx; }
+.small-btn { background:#F6F3EF; color:#6A625B; border:none; border-radius: 16rpx; padding: 10rpx 20rpx; font-size: 24rpx; }
+.tiny-btn { background:#F6F3EF; color:#6A625B; border:none; border-radius: 12rpx; padding: 8rpx 12rpx; font-size: 22rpx; }
+.tiny-btn.danger { background:#F7E9E9; color:#B85C5C; }
+.viz-option { background:#FBF9F6; border: 2rpx solid #E2D8CC; border-radius: 16rpx; padding: 16rpx; display:flex; flex-direction:column; gap: 12rpx; }
+.viz-option .row { display:flex; gap: 12rpx; }
+.choices { display:flex; flex-direction: column; gap: 8rpx; }
+.choices-header { display:flex; justify-content:space-between; align-items:center; }
+.choice-row { display:flex; gap: 8rpx; align-items:center; }
+.opt-actions { display:flex; gap: 8rpx; }
+.divider { height: 1rpx; background:#EDE7DF; margin-top: 8rpx; }
+.choice-id-label { font-size: 22rpx; color: #999; background: #f5f5f5; padding: 8rpx 12rpx; border-radius: 8rpx; margin-bottom: 8rpx; display: block; }
+.option-id-label { font-size: 22rpx; color: #999; background: #f5f5f5; padding: 8rpx 12rpx; border-radius: 8rpx; margin-bottom: 8rpx; display: block; }
 </style>

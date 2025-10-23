@@ -16,6 +16,12 @@
         
         <view class="item-info">
           <text class="item-name">{{ item.name }}</text>
+          <!-- 显示扩展选项 -->
+          <view v-if="item.selectedOptions && Object.keys(item.selectedOptions).length > 0" class="selected-options">
+            <text v-for="(value, key) in item.selectedOptions" :key="key" class="option-tag">
+              {{ formatOptionDisplay(key, value) }}
+            </text>
+          </view>
           <text class="item-price price-small">¥{{ item.price }}</text>
         </view>
         
@@ -77,7 +83,10 @@ export default {
   
   computed: {
     totalAmount() {
-      return cartManager.getTotalAmount().toFixed(2)
+      // 强制重新计算，确保响应式更新
+      const amount = cartManager.getTotalAmount()
+      console.log('计算总金额:', amount, '购物车项目:', this.cartItems.length)
+      return amount.toFixed(2)
     }
   },
   
@@ -89,19 +98,21 @@ export default {
     // 加载购物车
     loadCart() {
       this.cartItems = cartManager.getCart()
+      console.log('购物车加载完成:', this.cartItems)
+      console.log('总金额:', cartManager.getTotalAmount())
     },
     
     // 减少数量
     decreaseQuantity(item) {
       if (item.quantity > 1) {
-        cartManager.updateQuantity(item.id, item.quantity - 1)
+        cartManager.updateQuantityByKey(item.key, item.quantity - 1)
         this.loadCart()
       }
     },
     
     // 增加数量
     increaseQuantity(item) {
-      cartManager.updateQuantity(item.id, item.quantity + 1)
+      cartManager.updateQuantityByKey(item.key, item.quantity + 1)
       this.loadCart()
     },
     
@@ -112,7 +123,7 @@ export default {
         content: '确定要删除这个菜品吗？',
         success: (res) => {
           if (res.confirm) {
-            cartManager.removeFromCart(item.id)
+            cartManager.removeFromCart(item.key)
             this.loadCart()
             uni.showToast({
               title: '已删除',
@@ -143,14 +154,18 @@ export default {
       try {
         uni.showLoading({ title: '提交中...' })
         
-        // 构建订单数据
+        // 构建订单数据，包含扩展选项信息
         const orderData = {
-          remark: this.remark,
+          remark: this.buildOrderRemark(),
           items: this.cartItems.map(item => ({
             dishId: item.id,
-            quantity: item.quantity
+            quantity: item.quantity,
+            unitPrice: item.price // 传递包含选项价格的实际单价
           }))
         }
+        
+        console.log('提交订单数据:', orderData)
+        console.log('购物车项目详情:', this.cartItems)
         
         // 创建订单
         const orderId = await orderApi.create(orderData)
@@ -181,6 +196,50 @@ export default {
       } catch (error) {
         uni.hideLoading()
         console.error('提交订单失败:', error)
+      }
+    },
+    
+    // 格式化选项显示
+    formatOptionDisplay(key, value) {
+      if (Array.isArray(value)) {
+        return `${key}: ${value.join(', ')}`
+      } else if (typeof value === 'object' && value !== null) {
+        return `${key}: ${JSON.stringify(value)}`
+      } else {
+        return `${key}: ${value}`
+      }
+    },
+    
+    // 构建订单备注，包含扩展选项信息
+    buildOrderRemark() {
+      let remark = this.remark || ''
+      
+      // 收集所有有扩展选项的菜品信息
+      const itemsWithOptions = this.cartItems.filter(item => 
+        item.selectedOptions && Object.keys(item.selectedOptions).length > 0
+      )
+      
+      if (itemsWithOptions.length > 0) {
+        remark += '\n\n【菜品选项】:'
+        itemsWithOptions.forEach(item => {
+          remark += `\n${item.name}(${item.quantity}份):`
+          Object.entries(item.selectedOptions).forEach(([key, value]) => {
+            remark += `\n  ${key}: ${this.formatOptionValue(value)}`
+          })
+        })
+      }
+      
+      return remark.trim()
+    },
+    
+    // 格式化选项值
+    formatOptionValue(value) {
+      if (Array.isArray(value)) {
+        return value.join(', ')
+      } else if (typeof value === 'object' && value !== null) {
+        return JSON.stringify(value)
+      } else {
+        return String(value)
       }
     }
   }
@@ -375,5 +434,22 @@ export default {
   color: #ffffff;
   font-size: 28rpx;
   font-weight: bold;
+}
+
+/* 扩展选项样式 */
+.selected-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin: 8rpx 0;
+}
+
+.option-tag {
+  background: #F0E9E1;
+  color: #7B5B44;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+  border: 1rpx solid #E2D8CC;
 }
 </style>
