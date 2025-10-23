@@ -15,7 +15,7 @@
 
     <insert id="insert" parameterType="com.homeordering.entity.Order" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO `order` (order_no, total_amount, status, remark, create_time, update_time)
-        VALUES (#{orderNo}, #{totalAmount}, #{status}, #{remark}, NOW(), NOW())
+        VALUES (#{orderNo}, #{totalAmount}, #{status}, #{remark}, #{createTime}, #{updateTime})
     </insert>
 
     <select id="selectById" resultMap="OrderResultMap">
@@ -33,7 +33,7 @@
     </select>
 
     <update id="updateStatus">
-        UPDATE `order` SET status = #{status}, update_time = NOW()
+        UPDATE `order` SET status = #{status}, update_time = #{updateTime}
         WHERE id = #{id}
     </update>
 

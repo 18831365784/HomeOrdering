@@ -43,7 +43,7 @@ public class OrderServiceImpl implements OrderService {
         // 创建订单
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
-        order.setStatus(0); // 等待老公确认
+        order.setStatus(0); // 待确认
         order.setRemark(orderDTO.getRemark());
         order.setTotalAmount(BigDecimal.ZERO);
 
@@ -73,6 +73,12 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setTotalAmount(totalAmount);
+        
+        // 设置创建时间和更新时间（使用北京时间）
+        LocalDateTime now = LocalDateTime.now();
+        order.setCreateTime(now);
+        order.setUpdateTime(now);
+        
         orderMapper.insert(order);
 
         // 保存订单详情
@@ -127,7 +133,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public boolean updateOrderStatus(Long id, Integer status) {
-        return orderMapper.updateStatus(id, status) > 0;
+        // 创建更新参数对象
+        Order updateOrder = new Order();
+        updateOrder.setId(id);
+        updateOrder.setStatus(status);
+        updateOrder.setUpdateTime(LocalDateTime.now());
+        
+        return orderMapper.updateStatus(id, status, updateOrder.getUpdateTime()) > 0;
     }
 
     @Override
@@ -156,10 +168,10 @@ public class OrderServiceImpl implements OrderService {
         // 设置状态文本
         switch (order.getStatus()) {
             case 0:
-                orderVO.setStatusText("等待老公确认");
+                orderVO.setStatusText("待确认");
                 break;
             case 1:
-                orderVO.setStatusText("老公大人已许可");
+                orderVO.setStatusText("已确认");
                 break;
             case 2:
                 orderVO.setStatusText("已完成");

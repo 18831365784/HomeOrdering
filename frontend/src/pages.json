@@ -37,6 +37,12 @@
       }
     },
     {
+      "path": "pages/dish/manage",
+      "style": {
+        "navigationBarTitleText": "菜品管理"
+      }
+    },
+    {
       "path": "pages/cart/index",
       "style": {
         "navigationBarTitleText": "购物车"

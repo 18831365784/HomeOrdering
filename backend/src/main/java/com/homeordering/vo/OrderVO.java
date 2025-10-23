@@ -1,5 +1,6 @@
 package com.homeordering.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ public class OrderVO implements Serializable {
     private Integer status;
     private String statusText;
     private String remark;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;
     private List<OrderDetailVO> details;
 }

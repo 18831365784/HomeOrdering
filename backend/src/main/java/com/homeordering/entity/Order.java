@@ -1,5 +1,6 @@
 package com.homeordering.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -27,7 +28,7 @@ public class Order implements Serializable {
     private BigDecimal totalAmount;
 
     /**
-     * 订单状态: 0-等待老公确认 1-老公大人已许可 2-已完成
+     * 订单状态: 0-待确认 1-已确认 2-已完成
      */
     private Integer status;
 
@@ -39,10 +40,12 @@ public class Order implements Serializable {
     /**
      * 创建时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;
 
     /**
      * 更新时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime updateTime;
 }

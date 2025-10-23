@@ -65,7 +65,7 @@
           class="btn btn-primary primary-bg"
           @click="confirmOrder"
         >
-          老公确认
+          确认
         </button>
         <button 
           v-if="order.status === 1" 

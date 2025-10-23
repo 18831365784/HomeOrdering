@@ -47,11 +47,13 @@ CREATE TABLE `dish` (
   `category` VARCHAR(50) DEFAULT NULL COMMENT '菜品分类: 肉类、蔬菜、主食、凉菜、汤',
   `order_count` INT NOT NULL DEFAULT 0 COMMENT '点单次数',
   `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0-停用 1-启用',
+  `sort` INT NOT NULL DEFAULT 0 COMMENT '排序，越小越靠前',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   INDEX `idx_status` (`status`),
-  INDEX `idx_order_count` (`order_count` DESC)
+  INDEX `idx_order_count` (`order_count` DESC),
+  INDEX `idx_sort` (`sort` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜品表';
 
 -- 订单表
@@ -60,7 +62,7 @@ CREATE TABLE `order` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `order_no` VARCHAR(50) NOT NULL COMMENT '订单号',
   `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '订单总金额',
-  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态: 0-等待老公确认 1-老公大人已许可 2-已完成',
+  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态: 0-待确认 1-已确认 2-已完成',
   `remark` VARCHAR(500) DEFAULT NULL COMMENT '备注',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

@@ -97,10 +97,16 @@ const uploadIcon = (filePath) => {
 export const dishApi = {
   // 获取菜品列表
   getList(status) {
-    return request('/dish/list', {
-      method: 'GET',
-      data: { status }
-    })
+    if (status !== null && status !== undefined) {
+      return request('/dish/list', {
+        method: 'GET',
+        data: { status }
+      })
+    } else {
+      return request('/dish/list', {
+        method: 'GET'
+      })
+    }
   },
   
   // 获取菜品详情

@@ -49,7 +49,7 @@
         <view class="info-list">
           <view class="info-item">
             <text class="info-label">创建时间:</text>
-            <text class="info-value">{{ order.createTime }}</text>
+            <text class="info-value">{{ formatTime(order.createTime) }}</text>
           </view>
           <view class="info-item total">
             <text class="info-label">订单总额:</text>
@@ -59,7 +59,7 @@
       </view>
       
       <!-- 操作按钮 -->
-      <view class="action-buttons">
+      <view class="action-buttons" v-if="isAdmin">
         <button 
           v-if="order.status === 0" 
           class="btn btn-primary primary-bg"
@@ -92,27 +92,40 @@
 
 <script>
 import { orderApi } from '@/utils/api.js'
+import userManager from '@/utils/user.js'
 
 export default {
   data() {
     return {
       orderId: null,
-      order: null
+      order: null,
+      isAdmin: false
     }
   },
   
   onLoad(options) {
     this.orderId = options.id
+    this.checkAdminStatus()
     this.loadOrderDetail()
   },
   
   methods: {
+    // 检查管理员状态
+    checkAdminStatus() {
+      this.isAdmin = userManager.isAdmin()
+      console.log('订单详情页管理员状态:', this.isAdmin)
+    },
+    
     // 加载订单详情
     async loadOrderDetail() {
       try {
         uni.showLoading({ title: '加载中...' })
         const order = await orderApi.getDetail(this.orderId)
-        this.order = order
+        // 处理状态文本
+        this.order = {
+          ...order,
+          statusText: this.getStatusText(order.status)
+        }
       } catch (error) {
         console.error('加载订单详情失败:', error)
         uni.showToast({
@@ -191,6 +204,29 @@ export default {
           }
         }
       })
+    },
+    
+    // 获取状态文本
+    getStatusText(status) {
+      const statusMap = {
+        0: '待确认',
+        1: '已确认',
+        2: '已完成'
+      }
+      return statusMap[status] || '未知状态'
+    },
+    
+    // 格式化时间
+    formatTime(timeStr) {
+      console.log('原始时间字符串:', timeStr)
+      
+      // 后端已经返回正确格式的时间字符串，直接截取显示部分
+      if (timeStr && timeStr.length >= 16) {
+        const result = timeStr.substring(0, 16) // 取前16位：yyyy-MM-dd HH:mm
+        console.log('格式化结果:', result)
+        return result
+      }
+      return timeStr
     }
   }
 }

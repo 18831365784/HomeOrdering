@@ -52,6 +52,11 @@ public class Dish implements Serializable {
     private Integer status;
 
     /**
+     * 排序，越小越靠前
+     */
+    private Integer sort;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

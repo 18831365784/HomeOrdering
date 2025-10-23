@@ -4,7 +4,7 @@
     <view class="search-bar">
       <view class="search-shell">
         <text class="search-icon">🔎</text>
-        <input class="search-input" placeholder="搜索拿铁、冷萃…" v-model="searchKeyword" @input="onSearch" />
+        <input class="search-input" placeholder="搜索美食、饮品..." v-model="searchKeyword" @input="onSearch" />
       </view>
     </view>
     
@@ -69,13 +69,13 @@
               <view class="divider" />
               <view class="dish-meta">
                 <text class="price">¥{{ dish.price }}</text>
-                <text class="order-soft">月售 {{ dish.orderCount || 0 }}</text>
+                <text class="order-count">销量 {{ dish.orderCount || 0 }}</text>
               </view>
             </view>
             
             <!-- 添加按钮 -->
             <view class="dish-action" @click.stop="addToCart(dish)">
-              <view class="add-btn accent-bg">
+              <view class="add-btn">
                 <text class="add-plus">＋</text>
               </view>
             </view>
@@ -89,12 +89,12 @@
       </view>
     </view>
     
-    <!-- 管理员添加菜品按钮 -->
-    <view v-if="isAdmin" class="fab-button primary-bg" @click="goToAddDish">
-      <text class="fab-icon">＋</text>
+    <!-- 管理员菜品管理入口（右下角主悬浮） -->
+    <view v-if="isAdmin" class="fab-button primary-bg" @click="goDishManage">
+      <text class="fab-icon">🍽️</text>
     </view>
 
-    <!-- 管理员分类管理入口（右下角二号悬浮） -->
+    <!-- 管理员分类管理入口（右下角次悬浮） -->
     <view v-if="isAdmin" class="fab-button fab-secondary accent-bg" @click="goCategoryManage">
       <text class="fab-icon">🏷️</text>
     </view>
@@ -142,6 +142,7 @@ export default {
   },
   
   methods: {
+    
     // 判断是否为图片URL（支持 http/https 以及 /uploads 开头的后端静态资源）
     isImageUrl(v) {
       if (!v || typeof v !== 'string') return false
@@ -156,6 +157,7 @@ export default {
         list.forEach(c => {
           if (c.iconUrl) this.categoryIcons[c.name] = c.iconUrl
         })
+        
       } catch (e) {
         console.error('加载分类失败', e)
       }
@@ -235,12 +237,11 @@ export default {
     },
     
     // 跳转到添加菜品页面
-    goToAddDish() {
-      uni.navigateTo({
-        url: '/pages/dish/add'
-      })
+    // 跳转菜品管理
+    goDishManage() {
+      uni.navigateTo({ url: '/pages/dish/manage' })
     },
-
+    
     // 跳转分类管理
     goCategoryManage() {
       uni.navigateTo({ url: '/pages/category/manage' })
@@ -297,12 +298,22 @@ export default {
   width: 160rpx;
   background-color: #F0E9E1;
   overflow-y: auto;
+  overflow-x: hidden;
   position: fixed;
   left: 0;
-  top: 120rpx; /* 紧贴搜索栏底部，搜索栏大约 ~120rpx 高 */
+  top: 128rpx; /* 稍微向下调整，与右侧菜品栏对齐 */
   height: calc(100vh - 120rpx);
   z-index: 900;
+  -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
+  scrollbar-width: none; /* Firefox 隐藏滚动条 */
+  -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
 }
+
+/* Webkit 浏览器隐藏滚动条 */
+.category-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
 
 .category-item {
   height: 140rpx;
@@ -315,6 +326,7 @@ export default {
   position: relative;
   transition: all 0.3s;
   padding: 0 12rpx;
+  flex-shrink: 0; /* 防止分类项被压缩 */
 }
 
 .category-item.active {
@@ -417,35 +429,52 @@ export default {
 
 .dish-meta {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
-.order-soft {
+.price {
+  font-size: 32rpx;
+  color: #7B5B44;
+  font-weight: bold;
+}
+
+.order-count {
   font-size: 24rpx;
   color: #A39A92;
 }
 
 .dish-action {
   position: absolute;
-  right: 24rpx;
-  bottom: 24rpx;
+  right: 20rpx;
+  bottom: 20rpx;
 }
 
 .add-btn {
-  width: 60rpx;
-  height: 60rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2E2A27;
-  font-size: 40rpx;
+  color: #ffffff;
+  font-size: 36rpx;
   font-weight: bold;
-  box-shadow: 0 6rpx 18rpx rgba(159, 211, 199, 0.35);
+  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
+  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.25);
+  border: 2rpx solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
 }
 
-.add-plus { line-height: 1; }
+.add-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(123, 91, 68, 0.35);
+}
+
+.add-plus { 
+  line-height: 1; 
+  margin-top: -2rpx; /* 微调加号位置 */
+}
 
 .empty-state {
   display: flex;
@@ -476,7 +505,7 @@ export default {
   font-weight: bold;
 }
 
-.fab-secondary { bottom: 260rpx; }
+.fab-secondary { bottom: 240rpx; }
 
 .modal-mask {
   position: fixed; left: 0; right: 0; top: 0; bottom: 0;

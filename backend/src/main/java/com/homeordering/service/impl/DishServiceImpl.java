@@ -6,6 +6,7 @@ import com.homeordering.service.DishService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -20,6 +21,10 @@ public class DishServiceImpl implements DishService {
     @Override
     public Long addDish(Dish dish) {
         dish.setStatus(1); // 默认启用
+        dish.setSort(0); // 默认排序为0，新菜品排在最后
+        LocalDateTime now = LocalDateTime.now();
+        dish.setCreateTime(now);
+        dish.setUpdateTime(now);
         dishMapper.insert(dish);
         return dish.getId();
     }
@@ -36,6 +41,7 @@ public class DishServiceImpl implements DishService {
 
     @Override
     public boolean updateDish(Dish dish) {
+        dish.setUpdateTime(LocalDateTime.now());
         return dishMapper.update(dish) > 0;
     }
 

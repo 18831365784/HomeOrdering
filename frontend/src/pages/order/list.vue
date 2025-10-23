@@ -14,14 +14,14 @@
         :class="{ active: currentStatus === 0 }"
         @click="filterByStatus(0)"
       >
-        等待确认
+        待确认
       </view>
       <view 
         class="filter-item" 
         :class="{ active: currentStatus === 1 }"
         @click="filterByStatus(1)"
       >
-        已许可
+        已确认
       </view>
       <view 
         class="filter-item" 
@@ -80,30 +80,6 @@
           <text class="order-total">合计: <text class="price">¥{{ order.totalAmount }}</text></text>
         </view>
         
-        <!-- 订单操作 -->
-        <view class="order-actions" @click.stop>
-          <button 
-            v-if="order.status === 0 && isAdmin" 
-            class="action-btn btn-primary primary-bg"
-            @click="confirmOrder(order.id)"
-          >
-            确认
-          </button>
-          <button 
-            v-if="order.status === 1 && isAdmin" 
-            class="action-btn btn-primary primary-bg"
-            @click="completeOrder(order.id)"
-          >
-            完成订单
-          </button>
-          <button 
-            v-if="isAdmin"
-            class="action-btn btn-secondary"
-            @click="deleteOrder(order.id)"
-          >
-            删除
-          </button>
-        </view>
       </view>
     </view>
     
@@ -122,15 +98,11 @@ export default {
   data() {
     return {
       orders: [],
-      currentStatus: null,
-      isAdmin: false
+      currentStatus: null
     }
   },
   
   onLoad() {
-    // 检查管理员权限
-    this.checkAdminStatus()
-    
     // 监听用户信息更新事件
     uni.$on('userInfoUpdated', this.onUserInfoUpdated)
   },
@@ -141,8 +113,7 @@ export default {
   },
   
   onShow() {
-    // 每次显示时刷新管理员状态和订单列表
-    this.checkAdminStatus()
+    // 每次显示时刷新订单列表
     this.loadOrders()
   },
   
@@ -150,13 +121,6 @@ export default {
     // 用户信息更新后的回调
     onUserInfoUpdated(userInfo) {
       console.log('订单页接收到用户信息更新事件:', userInfo)
-      this.checkAdminStatus()
-    },
-    
-    // 检查管理员状态
-    checkAdminStatus() {
-      this.isAdmin = userManager.isAdmin()
-      console.log('订单页管理员状态:', this.isAdmin)
     },
     
     // 加载订单列表
@@ -164,7 +128,11 @@ export default {
       try {
         uni.showLoading({ title: '加载中...' })
         const orders = await orderApi.getList(this.currentStatus)
-        this.orders = orders
+        // 处理状态文本
+        this.orders = orders.map(order => ({
+          ...order,
+          statusText: this.getStatusText(order.status)
+        }))
       } catch (error) {
         console.error('加载订单失败:', error)
       } finally {
@@ -185,71 +153,14 @@ export default {
       })
     },
     
-    // 确认订单
-    confirmOrder(orderId) {
-      uni.showModal({
-        title: '提示',
-        content: '确认许可这个订单吗？',
-        confirmText: '确认',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              await orderApi.updateStatus(orderId, 1)
-              uni.showToast({
-                title: '已许可',
-                icon: 'success'
-              })
-              this.loadOrders()
-            } catch (error) {
-              console.error('更新订单状态失败:', error)
-            }
-          }
-        }
-      })
-    },
-    
-    // 完成订单
-    completeOrder(orderId) {
-      uni.showModal({
-        title: '提示',
-        content: '确认完成这个订单吗？',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              await orderApi.updateStatus(orderId, 2)
-              uni.showToast({
-                title: '订单已完成',
-                icon: 'success'
-              })
-              this.loadOrders()
-            } catch (error) {
-              console.error('更新订单状态失败:', error)
-            }
-          }
-        }
-      })
-    },
-    
-    // 删除订单
-    deleteOrder(orderId) {
-      uni.showModal({
-        title: '提示',
-        content: '确定要删除这个订单吗？',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              await orderApi.delete(orderId)
-              uni.showToast({
-                title: '已删除',
-                icon: 'success'
-              })
-              this.loadOrders()
-            } catch (error) {
-              console.error('删除订单失败:', error)
-            }
-          }
-        }
-      })
+    // 获取状态文本
+    getStatusText(status) {
+      const statusMap = {
+        0: '待确认',
+        1: '已确认',
+        2: '已完成'
+      }
+      return statusMap[status] || '未知状态'
     },
     
     // 获取状态样式
@@ -263,13 +174,13 @@ export default {
     },
     
     // 格式化时间
-    formatTime(timeStr) {
-      const date = new Date(timeStr)
-      const month = date.getMonth() + 1
-      const day = date.getDate()
-      const hour = String(date.getHours()).padStart(2, '0')
-      const minute = String(date.getMinutes()).padStart(2, '0')
-      return `${month}-${day} ${hour}:${minute}`
+    formatTime(timeStr) {     
+      // 后端已经返回正确格式的时间字符串，直接截取显示部分
+      if (timeStr && timeStr.length >= 16) {
+        const result = timeStr.substring(0, 16) // 取前16位：yyyy-MM-dd HH:mm
+        return result
+      }
+      return timeStr
     }
   }
 }
