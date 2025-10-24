@@ -53,58 +53,118 @@
           
           <!-- 扩展项设置（仅可视化） -->
           <view class="extensions-editor">
-            <view class="viz-editor">
-              <view class="viz-toolbar">
-                <button class="small-btn" @click="addOption">＋ 添加选项</button>
-              </view>
-              <view v-if="vizOptions.length===0" class="text-muted">暂无选项，点击“添加选项”开始配置</view>
-              <view v-for="(opt, oi) in vizOptions" :key="opt.__uid" class="viz-option">
-                <view class="row">
-                  <text class="option-id-label">选项ID: {{ opt.id }}</text>
-                  <input class="modal-input" placeholder="选项名称(如：辣度)" v-model="opt.name" />
+            <view class="editor-header">
+              <text class="editor-title">扩展选项配置</text>
+              <button class="add-option-btn" @click="addOption">
+                <text class="btn-icon">＋</text>
+                <text class="btn-text">添加选项</text>
+              </button>
+            </view>
+            
+            <view v-if="vizOptions.length===0" class="empty-state">
+              <text class="empty-icon">📝</text>
+              <text class="empty-text">暂无扩展选项</text>
+              <text class="empty-desc">点击上方"添加选项"开始配置</text>
+            </view>
+            
+            <view v-for="(opt, oi) in vizOptions" :key="opt.__uid" class="option-card">
+              <!-- 选项头部 -->
+              <view class="option-header">
+                <view class="option-title-row">
+                  <input class="option-name-input" placeholder="选项名称(如：辣度)" v-model="opt.name" />
+                  <view class="option-type-picker">
+                    <picker :range="selectionTypeLabels" :value="selectionTypes.indexOf(opt.selectionType)" @change="e=>changeType(oi, e.detail.value)">
+                      <view class="type-picker-text">{{ getSelectionTypeLabel(opt.selectionType) }}</view>
+                    </picker>
+                  </view>
                 </view>
-                <view class="row">
-                  <picker :range="selectionTypeLabels" :value="selectionTypes.indexOf(opt.selectionType)" @change="e=>changeType(oi, e.detail.value)">
-                    <view class="picker-text">类型：{{ getSelectionTypeLabel(opt.selectionType) }}</view>
-                  </picker>
-                  <label class="switch">
-                    <switch :checked="!!opt.required" @change="e=>opt.required=e.detail.value" /> 必填
+                <view class="option-required">
+                  <label class="required-switch">
+                    <switch :checked="!!opt.required" @change="e=>opt.required=e.detail.value" />
+                    <text class="required-label">必填</text>
                   </label>
                 </view>
-                <view v-if="opt.selectionType==='multiple'" class="row">
-                  <input class="modal-input" type="number" placeholder="最少(min)" v-model.number="opt.min" />
-                  <input class="modal-input" type="number" placeholder="最多(max)" v-model.number="opt.max" />
-                </view>
-                <view v-if="opt.selectionType==='input'" class="row">
-                  <input class="modal-input" placeholder="占位提示" v-model="opt.placeholder" />
-                </view>
-                <view v-if="opt.selectionType==='number'" class="row">
-                  <input class="modal-input" placeholder="单位(如：杯/份)" v-model="opt.unit" />
-                  <input class="modal-input" placeholder="占位提示" v-model="opt.placeholder" />
+              </view>
+              
+              <!-- 选项配置 -->
+              <view class="option-config">
+                <view v-if="opt.selectionType==='multiple'" class="config-row">
+                  <view class="config-item">
+                    <text class="config-label">最少选择</text>
+                    <input class="config-input" type="number" placeholder="0" v-model.number="opt.min" />
+                  </view>
+                  <view class="config-item">
+                    <text class="config-label">最多选择</text>
+                    <input class="config-input" type="number" placeholder="无限制" v-model.number="opt.max" />
+                  </view>
                 </view>
                 
-                <view v-if="opt.selectionType==='single' || opt.selectionType==='multiple' || opt.selectionType==='node'" class="choices">
-                  <view class="choices-header">
-                    <text>选择项</text>
-                    <button class="small-btn" @click="addChoice(oi)">＋ 添加选择项</button>
-                  </view>
-                  <view v-if="!Array.isArray(opt.choices) || opt.choices.length===0" class="text-muted">暂无选择项</view>
-                  <view v-for="(c, ci) in (opt.choices||[])" :key="c.__uid" class="choice-row">
-                    <text class="choice-id-label">选择项ID: {{ c.id }}</text>
-                    <input class="modal-input" placeholder="选择项名称" v-model="c.name" />
-                    <input class="modal-input" type="number" placeholder="加价(可选)" v-model.number="c.price" />
-                    <button class="tiny-btn" @click="moveChoice(oi, ci, -1)">↑</button>
-                    <button class="tiny-btn" @click="moveChoice(oi, ci, 1)">↓</button>
-                    <button class="tiny-btn danger" @click="removeChoice(oi, ci)">删</button>
+                <view v-if="opt.selectionType==='input'" class="config-row">
+                  <view class="config-item full-width">
+                    <text class="config-label">占位提示</text>
+                    <input class="config-input" placeholder="请输入..." v-model="opt.placeholder" />
                   </view>
                 </view>
-
-                <view class="opt-actions">
-                  <button class="tiny-btn" @click="moveOption(oi, -1)">↑上移</button>
-                  <button class="tiny-btn" @click="moveOption(oi, 1)">↓下移</button>
-                  <button class="tiny-btn danger" @click="removeOption(oi)">删除选项</button>
+                
+                <view v-if="opt.selectionType==='number'" class="config-row">
+                  <view class="config-item">
+                    <text class="config-label">单位</text>
+                    <input class="config-input" placeholder="杯/份" v-model="opt.unit" />
+                  </view>
+                  <view class="config-item">
+                    <text class="config-label">占位提示</text>
+                    <input class="config-input" placeholder="请输入数字" v-model="opt.placeholder" />
+                  </view>
                 </view>
-                <view class="divider" />
+              </view>
+              
+              <!-- 选择项配置 -->
+              <view v-if="opt.selectionType==='single' || opt.selectionType==='multiple'" class="choices-section">
+                <view class="choices-header">
+                  <text class="choices-title">选择项</text>
+                  <button class="add-choice-btn" @click="addChoice(oi)">
+                    <text class="btn-icon">＋</text>
+                    <text class="btn-text">添加选择项</text>
+                  </button>
+                </view>
+                
+                <view v-if="!Array.isArray(opt.choices) || opt.choices.length===0" class="choices-empty">
+                  <text class="empty-text">暂无选择项</text>
+                </view>
+                
+                <view v-for="(c, ci) in (opt.choices||[])" :key="c.__uid" class="choice-item">
+                  <view class="choice-content">
+                    <input class="choice-name-input" placeholder="选择项名称" v-model="c.name" />
+                    <input class="choice-price-input" type="number" placeholder="加价" v-model.number="c.price" />
+                  </view>
+                  <view class="choice-actions">
+                    <button class="action-btn move-up" @click="moveChoice(oi, ci, -1)" :disabled="ci === 0">
+                      <text>↑</text>
+                    </button>
+                    <button class="action-btn move-down" @click="moveChoice(oi, ci, 1)" :disabled="ci === opt.choices.length - 1">
+                      <text>↓</text>
+                    </button>
+                    <button class="action-btn delete" @click="removeChoice(oi, ci)">
+                      <text>×</text>
+                    </button>
+                  </view>
+                </view>
+              </view>
+              
+              <!-- 选项操作 -->
+              <view class="option-actions">
+                <button class="action-btn move-up" @click="moveOption(oi, -1)" :disabled="oi === 0">
+                  <text>↑</text>
+                  <text class="btn-text">上移</text>
+                </button>
+                <button class="action-btn move-down" @click="moveOption(oi, 1)" :disabled="oi === vizOptions.length - 1">
+                  <text>↓</text>
+                  <text class="btn-text">下移</text>
+                </button>
+                <button class="action-btn delete" @click="removeOption(oi)">
+                  <text>×</text>
+                  <text class="btn-text">删除</text>
+                </button>
               </view>
             </view>
           </view>
@@ -138,8 +198,8 @@ export default {
       form: { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, status: 1, sort: 0, extensions: '' },
       useVisualEditor: true,
       vizOptions: [],
-      selectionTypes: ['single','multiple','input','number','boolean','node'],
-      selectionTypeLabels: ['单选','多选','文本输入','数字输入','开关','节点'],
+      selectionTypes: ['single','multiple','input','number','boolean'],
+      selectionTypeLabels: ['单选','多选','文本输入','数字输入','开关'],
       dragStartIndex: -1,
       dragOverIndex: -1,
       isDragging: false
@@ -288,6 +348,8 @@ export default {
       try {
         await dishApi.update({ id: dish.id, status: dish.status === 1 ? 0 : 1 })
         this.load()
+        // 通知首页刷新数据
+        uni.$emit('dishUpdated')
       } catch (e) {}
     },
     
@@ -336,6 +398,8 @@ export default {
         uni.showToast({ title: '已保存', icon: 'success' })
         this.showModal = false
         this.load()
+        // 通知首页刷新数据
+        uni.$emit('dishUpdated')
       } catch (e) {}
     },
     
@@ -404,6 +468,8 @@ export default {
         
         await Promise.all(updatePromises)
         uni.showToast({ title: '排序已保存', icon: 'success' })
+        // 通知首页刷新数据
+        uni.$emit('dishUpdated')
       } catch (error) {
         console.error('排序失败:', error)
         uni.showToast({ title: '排序失败', icon: 'none' })
@@ -437,49 +503,404 @@ export default {
 .toggle-btn.btn-on { background: #7BB662; color: #fff; }
 .edit-btn { background: #7B5B44; color: #fff; }
 .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:2000; }
-.modal-card { width: 640rpx; max-height: 80vh; display: flex; flex-direction: column; background: #fff; border-radius: 24rpx; overflow: hidden; }
+.modal-card { width: 640rpx; max-height: 85vh; display: flex; flex-direction: column; background: #fff; border-radius: 24rpx; overflow: hidden; }
 .modal-title { font-size: 32rpx; font-weight: bold; color:#2E2A27; margin: 20rpx 20rpx 0 20rpx; flex-shrink: 0; }
 .modal-body { 
-  height: 80vh;
+  flex: 1;
   padding: 20rpx; 
   display: flex; 
   flex-direction: column; 
-  gap: 20rpx; 
+  overflow-y: auto;
 }
 .modal-actions { display:flex; gap: 16rpx; margin: 0 20rpx 20rpx 20rpx; flex-shrink: 0; }
-.modal-input { background:#F6F3EF; border-radius: 16rpx; padding: 20rpx; font-size: 28rpx; }
-.upload-row { display:flex; align-items:center; gap: 16rpx; }
-.upload-btn { padding: 12rpx 20rpx; border-radius: 20rpx; font-size: 24rpx; background: #F6F3EF; color: #6A625B; border: none; }
-.image-preview { width: 64rpx; height: 64rpx; border-radius: 12rpx; background:#EFE7DD; }
-.category-select { display:flex; align-items:center; gap: 16rpx; }
-.label { font-size: 28rpx; color:#2E2A27; }
-.picker-text { background:#F6F3EF; border-radius: 16rpx; padding: 20rpx; font-size: 28rpx; color:#2E2A27; }
-.modal-actions { display:flex; gap: 16rpx; margin-top: 12rpx; }
+.modal-input { 
+  background: #F6F3EF; 
+  border: 2rpx solid #E2D8CC;
+  border-radius: 16rpx; 
+  padding: 20rpx; 
+  font-size: 28rpx; 
+  color: #2E2A27;
+  transition: all 0.2s ease;
+  margin-bottom: 12rpx;
+}
+
+.modal-input:focus {
+  border-color: #7B5B44;
+  background: #ffffff;
+  box-shadow: 0 0 0 4rpx rgba(123, 91, 68, 0.1);
+}
+
+.upload-row { 
+  display: flex; 
+  align-items: center; 
+  gap: 16rpx; 
+  margin-bottom: 12rpx;
+}
+
+.upload-btn { 
+  padding: 0 24rpx; 
+  height: 60rpx;
+  border-radius: 16rpx; 
+  font-size: 26rpx; 
+  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
+  color: #fff; 
+  border: none; 
+  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.25);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(123, 91, 68, 0.35);
+}
+
+.image-preview { 
+  width: 80rpx; 
+  height: 80rpx; 
+  border-radius: 16rpx; 
+  background: #EFE7DD;
+  border: 2rpx solid #E2D8CC;
+  object-fit: cover;
+}
+
+.category-select { 
+  display: flex; 
+  align-items: center; 
+  gap: 16rpx; 
+  margin-bottom: 12rpx;
+}
+
+.label { 
+  font-size: 28rpx; 
+  color: #2E2A27; 
+  font-weight: 500;
+}
+
+.picker-text { 
+  background: #F6F3EF; 
+  border: 2rpx solid #E2D8CC;
+  border-radius: 16rpx; 
+  padding: 20rpx; 
+  font-size: 28rpx; 
+  color: #2E2A27;
+  transition: all 0.2s ease;
+}
+
+.picker-text:active {
+  border-color: #7B5B44;
+  background: #ffffff;
+}
 .modal-btn { padding: 16rpx 32rpx; border-radius: 24rpx; font-size: 28rpx; border: none; min-width: 120rpx; }
 .cancel-btn { background: #F6F3EF; color: #6A625B; }
 .save-btn { background: #7B5B44; color: #fff; }
 .fab-button { position: fixed; right: 40rpx; bottom: 120rpx; width: 100rpx; height: 100rpx; border-radius: 50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 10rpx 28rpx rgba(123,91,68,0.30); z-index: 1500; }
 .fab-icon { color:#fff; font-size: 60rpx; font-weight: bold; }
 
-.extensions-editor { display: flex; flex-direction: column; gap: 12rpx; margin-top: 20rpx; }
-.extensions-editor .label { font-size: 28rpx; color: #2E2A27; font-weight: bold; }
-.extensions-editor textarea { min-height: 120rpx; font-family: monospace; font-size: 24rpx; }
-.text-muted { font-size: 22rpx; color: #A39A92; }
+/* 扩展项编辑器样式 */
+.extensions-editor { 
+  margin-top: 24rpx; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 24rpx; 
+}
 
-.editor-tabs { display:flex; gap: 12rpx; margin-bottom: 8rpx; }
-.tab-btn { background:#F6F3EF; color:#6A625B; border:none; border-radius: 16rpx; padding: 10rpx 20rpx; font-size: 24rpx; }
-.tab-btn.active { background:#7B5B44; color:#fff; }
-.viz-toolbar { display:flex; justify-content:flex-end; margin-bottom: 8rpx; }
-.small-btn { background:#F6F3EF; color:#6A625B; border:none; border-radius: 16rpx; padding: 10rpx 20rpx; font-size: 24rpx; }
-.tiny-btn { background:#F6F3EF; color:#6A625B; border:none; border-radius: 12rpx; padding: 8rpx 12rpx; font-size: 22rpx; }
-.tiny-btn.danger { background:#F7E9E9; color:#B85C5C; }
-.viz-option { background:#FBF9F6; border: 2rpx solid #E2D8CC; border-radius: 16rpx; padding: 16rpx; display:flex; flex-direction:column; gap: 12rpx; }
-.viz-option .row { display:flex; gap: 12rpx; }
-.choices { display:flex; flex-direction: column; gap: 8rpx; }
-.choices-header { display:flex; justify-content:space-between; align-items:center; }
-.choice-row { display:flex; gap: 8rpx; align-items:center; }
-.opt-actions { display:flex; gap: 8rpx; }
-.divider { height: 1rpx; background:#EDE7DF; margin-top: 8rpx; }
-.choice-id-label { font-size: 22rpx; color: #999; background: #f5f5f5; padding: 8rpx 12rpx; border-radius: 8rpx; margin-bottom: 8rpx; display: block; }
-.option-id-label { font-size: 22rpx; color: #999; background: #f5f5f5; padding: 8rpx 12rpx; border-radius: 8rpx; margin-bottom: 8rpx; display: block; }
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  width: 100%;
+}
+
+.editor-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #2E2A27;
+}
+
+.add-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20rpx;
+  padding: 0 20rpx;
+  height: 60rpx;
+  font-size: 26rpx;
+  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.25);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.btn-icon {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.btn-text {
+  font-size: 26rpx;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 20rpx;
+  background: #F8F6F3;
+  border-radius: 16rpx;
+  border: 2rpx dashed #E2D8CC;
+}
+
+.empty-icon {
+  font-size: 60rpx;
+  margin-bottom: 16rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #6A625B;
+  font-weight: bold;
+  margin-bottom: 8rpx;
+}
+
+.empty-desc {
+  font-size: 24rpx;
+  color: #A39A92;
+}
+
+.option-card {
+  background: #ffffff;
+  border: 2rpx solid #E2D8CC;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.06);
+}
+
+.option-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.option-title-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.option-name-input {
+  flex: 1;
+  background: #F6F3EF;
+  border: 2rpx solid #E2D8CC;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  font-size: 28rpx;
+  color: #2E2A27;
+}
+
+.option-type-picker {
+  min-width: 160rpx;
+}
+
+.type-picker-text {
+  background: #F6F3EF;
+  border: 2rpx solid #E2D8CC;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  font-size: 26rpx;
+  color: #2E2A27;
+  text-align: center;
+}
+
+.option-required {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.required-switch {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.required-switch switch {
+  transform: scale(0.8);
+}
+
+.required-label {
+  font-size: 24rpx;
+  color: #6A625B;
+  font-weight: 500;
+}
+
+.option-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.config-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.config-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.config-item.full-width {
+  flex: 1;
+}
+
+.config-label {
+  font-size: 24rpx;
+  color: #6A625B;
+  font-weight: 500;
+}
+
+.config-input {
+  background: #F6F3EF;
+  border: 2rpx solid #E2D8CC;
+  border-radius: 12rpx;
+  padding: 12rpx 16rpx;
+  font-size: 26rpx;
+  color: #2E2A27;
+}
+
+.choices-section {
+  background: #F8F6F3;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.choices-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.choices-title {
+  font-size: 28rpx;
+  color: #2E2A27;
+  font-weight: bold;
+}
+
+.add-choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  background: #7B5B44;
+  color: #fff;
+  border: none;
+  border-radius: 16rpx;
+  padding: 0 16rpx;
+  height: 48rpx;
+  font-size: 24rpx;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.choices-empty {
+  text-align: center;
+  padding: 20rpx;
+  color: #A39A92;
+  font-size: 24rpx;
+}
+
+.choice-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  border: 1rpx solid #E2D8CC;
+}
+
+.choice-content {
+  flex: 1;
+  display: flex;
+  gap: 12rpx;
+}
+
+.choice-name-input {
+  flex: 1;
+  background: #F6F3EF;
+  border: 1rpx solid #E2D8CC;
+  border-radius: 8rpx;
+  padding: 12rpx 16rpx;
+  font-size: 26rpx;
+  color: #2E2A27;
+}
+
+.choice-price-input {
+  width: 120rpx;
+  background: #F6F3EF;
+  border: 1rpx solid #E2D8CC;
+  border-radius: 8rpx;
+  padding: 12rpx 16rpx;
+  font-size: 26rpx;
+  color: #2E2A27;
+  text-align: center;
+}
+
+.choice-actions {
+  display: flex;
+  gap: 6rpx;
+}
+
+.option-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #E2D8CC;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.action-btn.move-up {
+  background: #E8F4FD;
+  color: #4A90E2;
+}
+
+.action-btn.move-down {
+  background: #E8F4FD;
+  color: #4A90E2;
+}
+
+.action-btn.delete {
+  background: #F7E9E9;
+  color: #B85C5C;
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  background: #F0F0F0;
+  color: #999;
+}
 </style>

@@ -37,7 +37,7 @@
                   :key="option.key" 
                   class="option-text"
                 >
-                  {{ option.key }}: {{ option.value }}
+                  {{ option.key }}: {{ formatOptionValue(option.value) }}
                 </text>
               </view>
               <text class="dish-meta">¥{{ detail.dishPrice }} x {{ detail.quantity }}</text>
@@ -282,6 +282,20 @@ export default {
     getDishOptions(dishName) {
       const option = this.extractedOptions.find(opt => opt.dishName === dishName)
       return option ? option.items : null
+    },
+    
+    // 格式化扩展项的值
+    formatOptionValue(value) {
+      if (value === true || value === 'true') {
+        return '是'
+      }
+      if (value === false || value === 'false') {
+        return '否'
+      }
+      if (Array.isArray(value)) {
+        return value.join('、')
+      }
+      return value
     },
     
     // 从备注中提取扩展选项信息

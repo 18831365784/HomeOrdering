@@ -35,7 +35,7 @@
         <text class="label">可选项</text>
         <view class="options-list">
           <view v-for="opt in extOptions" :key="opt.id" class="option-group">
-            <text v-if="opt.selectionType !== 'node'" class="option-title">{{ opt.name }}<text v-if="opt.required" style="color:#E56C6C"> *</text></text>
+            <text class="option-title">{{ opt.name }}<text v-if="opt.required" style="color:#E56C6C"> *</text></text>
             <view v-if="opt.selectionType === 'single' && Array.isArray(opt.choices)" class="chips">
               <view v-for="c in opt.choices" :key="c.id" class="chip" :class="{active: selected[opt.id]===c.id}" @click="selectSingle(opt.id, c.id)">
                 <text>{{ c.name }}</text>
@@ -47,11 +47,17 @@
                 <text>{{ c.name }}</text>
                 <text v-if="c.price>0" class="chip-price">+¥{{ c.price }}</text>
               </view>
+              <!-- 多选限制提示 -->
+              <view v-if="opt.min > 0 || opt.max > 0" class="selection-hint">
+                <text v-if="opt.min > 0 && opt.max > 0">至少选择{{ opt.min }}项，最多{{ opt.max }}项</text>
+                <text v-else-if="opt.min > 0">至少选择{{ opt.min }}项</text>
+                <text v-else-if="opt.max > 0">最多选择{{ opt.max }}项</text>
+              </view>
             </view>
-            <view v-else-if="opt.selectionType === 'input'">
+            <view v-else-if="opt.selectionType === 'input'" class="input-group">
               <input class="option-input" :placeholder="opt.placeholder || '请输入'" v-model="selected[opt.id]" />
             </view>
-            <view v-else-if="opt.selectionType === 'number'">
+            <view v-else-if="opt.selectionType === 'number'" class="input-group">
               <input class="option-input" type="number" :placeholder="opt.placeholder || '请输入数字'" v-model.number="selected[opt.id]" />
               <text v-if="opt.unit" class="unit">{{ opt.unit }}</text>
             </view>
@@ -59,13 +65,7 @@
               <view class="chip" :class="{active: selected[opt.id]===true}" @click="selected[opt.id]=true">是</view>
               <view class="chip" :class="{active: selected[opt.id]===false}" @click="selected[opt.id]=false">否</view>
             </view>
-            <view v-else-if="opt.selectionType === 'node'" class="chips">
-              <view v-for="c in (opt.choices||[])" :key="c.id" class="chip" :class="{active: selected[opt.id]===c.id}" @click="toggleNode(opt.id, c.id)">
-                <text>{{ c.name }}</text>
-                <text v-if="c.price>0" class="chip-price">+¥{{ c.price }}</text>
-              </view>
-            </view>
-            <view v-else>
+            <view v-else class="input-group">
               <!-- 未知类型：给一个文本输入，逗号分隔 -->
               <input class="option-input" placeholder="可输入多个，用逗号分隔" v-model="selected[opt.id]" />
             </view>
@@ -203,10 +203,9 @@ export default {
               const ch = opt.choices.find(c => c.id === cid)
               return ch ? ch.name : cid
             })
-          } else if (opt.selectionType === 'node') {
-            const cid = this.selected[opt.id]
-            const ch = opt.choices && opt.choices.find(c => c.id === cid)
-            out[label] = ch ? ch.name : (this.selected[opt.id] || '')
+          } else if (opt.selectionType === 'number' && opt.unit) {
+            // 数字输入类型，包含单位
+            out[label] = `${this.selected[opt.id]}${opt.unit}`
           } else {
             out[label] = this.selected[opt.id]
           }
@@ -239,6 +238,11 @@ export default {
 
     // 加入购物车
     addToCart() {
+      // 校验扩展项
+      if (!this.validateExtensions()) {
+        return
+      }
+      
       const readable = this.buildReadableSelected()
       const unitPrice = this.calcUnitPrice()
       cartManager.addToCart(this.dish, this.quantity, readable, unitPrice)
@@ -267,19 +271,66 @@ export default {
       this.selected[optId] = arr
       this.$forceUpdate() // 强制更新视图
     },
-    toggleNode(optId, choiceId) {
-      if (this.selected[optId] === choiceId) {
-        // 如果已选中，则取消选择
-        this.selected[optId] = null
-      } else {
-        // 如果未选中，则选择
-        this.selected[optId] = choiceId
+    
+    // 校验扩展项
+    validateExtensions() {
+      for (const opt of this.extOptions) {
+        // 必填校验
+        if (opt.required) {
+          const value = this.selected[opt.id]
+          if (!value || (Array.isArray(value) && value.length === 0) || value === '') {
+            // 根据类型使用不同的提示词
+            let promptText = ''
+            if (opt.selectionType === 'input' || opt.selectionType === 'number') {
+              promptText = `"${opt.name}"为必填项，请填写`
+            } else {
+              promptText = `"${opt.name}"为必选项，请选择`
+            }
+            
+            uni.showToast({
+              title: promptText,
+              icon: 'none',
+              duration: 2000
+            })
+            return false
+          }
+        }
+        
+        // 多选类型的最少最多校验
+        if (opt.selectionType === 'multiple' && Array.isArray(opt.choices)) {
+          const selectedCount = Array.isArray(this.selected[opt.id]) ? this.selected[opt.id].length : 0
+          
+          // 最少校验
+          if (opt.min !== undefined && opt.min !== null && opt.min > 0 && selectedCount < opt.min) {
+            uni.showToast({
+              title: `"${opt.name}"至少需要选择${opt.min}项`,
+              icon: 'none',
+              duration: 2000
+            })
+            return false
+          }
+          
+          // 最多校验
+          if (opt.max !== undefined && opt.max !== null && opt.max > 0 && selectedCount > opt.max) {
+            uni.showToast({
+              title: `"${opt.name}"最多只能选择${opt.max}项`,
+              icon: 'none',
+              duration: 2000
+            })
+            return false
+          }
+        }
       }
-      this.$forceUpdate()
+      return true
     },
     
     // 立即下单
     buyNow() {
+      // 校验扩展项
+      if (!this.validateExtensions()) {
+        return
+      }
+      
       // 清空购物车，只购买当前菜品
       cartManager.clearCart()
       const readable = this.buildReadableSelected()
@@ -484,16 +535,47 @@ export default {
   background: #F6F3EF;
   border: 2rpx solid #E2D8CC;
   border-radius: 16rpx;
-  padding: 20rpx;
+  padding: 24rpx 20rpx;
   font-size: 28rpx;
   color: #2E2A27;
   width: 100%;
+  min-height: 80rpx;
   box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.option-input:focus {
+  border-color: #7B5B44;
+  background: #ffffff;
+  box-shadow: 0 0 0 4rpx rgba(123, 91, 68, 0.1);
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  width: 100%;
 }
 
 .unit {
   font-size: 24rpx;
   color: #A39A92;
   margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+.selection-hint {
+  width: 100%;
+  margin-top: 8rpx;
+  padding: 8rpx 12rpx;
+  background: transparent;
+  border-radius: 8rpx;
+  text-align: left;
+}
+
+.selection-hint text {
+  font-size: 22rpx;
+  color: #A39A92;
+  line-height: 1.4;
 }
 </style>

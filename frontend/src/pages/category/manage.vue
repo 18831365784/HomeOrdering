@@ -87,6 +87,8 @@ export default {
       try {
         await categoryApi.update({ id: c.id, status: c.status === 1 ? 0 : 1 })
         this.load()
+        // 通知首页刷新数据
+        uni.$emit('categoryUpdated')
       } catch (e) {}
     },
     chooseIcon() {
@@ -108,6 +110,8 @@ export default {
         uni.showToast({ title: '已保存', icon: 'success' })
         this.showModal = false
         this.load()
+        // 通知首页刷新数据
+        uni.$emit('categoryUpdated')
       } catch (e) {}
     },
     
@@ -177,6 +181,8 @@ export default {
         
         await Promise.all(updatePromises)
         uni.showToast({ title: '排序已保存', icon: 'success' })
+        // 通知首页刷新数据
+        uni.$emit('categoryUpdated')
       } catch (error) {
         console.error('排序失败:', error)
         uni.showToast({ title: '排序失败', icon: 'none' })

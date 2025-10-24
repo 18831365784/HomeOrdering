@@ -133,11 +133,17 @@ export default {
     
     // 监听用户信息更新事件
     uni.$on('userInfoUpdated', this.onUserInfoUpdated)
+    // 监听分类更新事件
+    uni.$on('categoryUpdated', this.onCategoryUpdated)
+    // 监听菜品更新事件
+    uni.$on('dishUpdated', this.onDishUpdated)
   },
   
   onUnload() {
     // 移除事件监听
     uni.$off('userInfoUpdated', this.onUserInfoUpdated)
+    uni.$off('categoryUpdated', this.onCategoryUpdated)
+    uni.$off('dishUpdated', this.onDishUpdated)
   },
   
   onShow() {
@@ -186,6 +192,19 @@ export default {
     onUserInfoUpdated(userInfo) {
       console.log('接收到用户信息更新事件:', userInfo)
       this.checkAdminStatus()
+    },
+    
+    // 分类更新后的回调
+    onCategoryUpdated() {
+      console.log('接收到分类更新事件，刷新分类和菜品数据')
+      this.loadCategories()
+      this.loadDishes()
+    },
+    
+    // 菜品更新后的回调
+    onDishUpdated() {
+      console.log('接收到菜品更新事件，刷新菜品数据')
+      this.loadDishes()
     },
     
     // 检查管理员状态
@@ -442,9 +461,10 @@ export default {
 .dish-desc {
   font-size: 24rpx;
   color: #6A625B;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .dish-meta {
