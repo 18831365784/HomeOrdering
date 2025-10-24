@@ -18,7 +18,7 @@
       <view class="dishes-card card">
         <text class="card-title">菜品明细</text>
         <view class="dish-list">
-          <view class="dish-item" v-for="detail in order.details" :key="detail.dishId">
+          <view class="dish-item" v-for="(detail, index) in order.details" :key="detail.dishId + '_' + index">
             <image 
               v-if="detail.dishImage" 
               :src="detail.dishImage" 
@@ -31,9 +31,9 @@
             <view class="dish-info">
               <text class="dish-name">{{ detail.dishName }}</text>
               <!-- 显示该菜品的扩展选项 -->
-              <view v-if="getDishOptions(detail.dishName)" class="dish-options">
+              <view v-if="getDishOptionsByDetail(detail, index)" class="dish-options">
                 <text 
-                  v-for="option in getDishOptions(detail.dishName)" 
+                  v-for="option in getDishOptionsByDetail(detail, index)" 
                   :key="option.key" 
                   class="option-text"
                 >
@@ -278,10 +278,49 @@ export default {
       return filteredLines.join('\n').trim()
     },
     
-    // 获取特定菜品的扩展选项
+    // 根据菜品明细获取对应的扩展选项
+    getDishOptionsByDetail(detail, detailIndex) {
+      console.log('菜品明细匹配:', {
+        dishName: detail.dishName,
+        quantity: detail.quantity,
+        detailIndex: detailIndex,
+        totalDetails: this.order.details.length
+      })
+      
+      // 查找所有匹配的菜品选项（根据名称和数量）
+      const matchedOptions = this.extractedOptions.filter(opt => 
+        opt.dishName === detail.dishName && opt.quantity === detail.quantity
+      )
+      
+      console.log('匹配的选项:', matchedOptions)
+      
+      // 如果有多个匹配项，根据索引选择对应的选项
+      if (matchedOptions.length > 1) {
+        // 使用索引来选择对应的选项，如果索引超出范围则使用最后一个
+        const optionIndex = Math.min(detailIndex, matchedOptions.length - 1)
+        console.log('选择选项索引:', optionIndex, '对应选项:', matchedOptions[optionIndex])
+        return matchedOptions[optionIndex].items
+      } else if (matchedOptions.length === 1) {
+        console.log('唯一选项:', matchedOptions[0])
+        return matchedOptions[0].items
+      }
+      
+      console.log('未找到匹配选项')
+      return null
+    },
+    
+    // 获取特定菜品的扩展选项（保留原方法以兼容）
     getDishOptions(dishName) {
-      const option = this.extractedOptions.find(opt => opt.dishName === dishName)
-      return option ? option.items : null
+      // 查找所有匹配的菜品选项
+      const matchedOptions = this.extractedOptions.filter(opt => opt.dishName === dishName)
+      
+      if (matchedOptions.length === 0) {
+        return null
+      }
+      
+      // 如果有多个相同名称的菜品，返回第一个的选项
+      // 在实际应用中，可能需要更复杂的匹配逻辑
+      return matchedOptions[0].items
     },
     
     // 格式化扩展项的值
@@ -326,12 +365,18 @@ export default {
             if (currentOption) {
               options.push(currentOption)
             }
+            // 为每个菜品创建唯一标识，即使名称相同
+            const dishName = dishMatch[1].trim()
+            const quantity = parseInt(dishMatch[2])
+            const uniqueId = `${dishName}_${quantity}_${options.length}`
+            
             currentOption = {
-              dishName: dishMatch[1].trim(),
-              quantity: parseInt(dishMatch[2]),
+              dishName: dishName,
+              quantity: quantity,
+              uniqueId: uniqueId,
               items: []
             }
-            console.log('找到菜品:', currentOption.dishName, '数量:', currentOption.quantity)
+            console.log('找到菜品:', currentOption.dishName, '数量:', currentOption.quantity, '唯一ID:', uniqueId)
             continue
           }
           
