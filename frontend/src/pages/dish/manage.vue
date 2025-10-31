@@ -506,11 +506,12 @@ export default {
 .modal-card { width: 640rpx; max-height: 85vh; display: flex; flex-direction: column; background: #fff; border-radius: 24rpx; overflow: hidden; }
 .modal-title { font-size: 32rpx; font-weight: bold; color:#2E2A27; margin: 20rpx 20rpx 0 20rpx; flex-shrink: 0; }
 .modal-body { 
-  flex: 1;
+  /* 设定固定高度以启用 scroll-view 原生滚动（小程序需要明确高度） */
+  height: 60vh;
   padding: 20rpx; 
   display: flex; 
   flex-direction: column; 
-  overflow-y: auto;
+  overflow: hidden; /* 避免与 scroll-view 双重滚动冲突 */
 }
 .modal-actions { display:flex; gap: 16rpx; margin: 0 20rpx 20rpx 20rpx; flex-shrink: 0; }
 .modal-input { 
