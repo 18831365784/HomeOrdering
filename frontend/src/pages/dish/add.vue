@@ -6,7 +6,7 @@
         <text class="form-label">菜品图片</text>
         <view class="image-upload">
           <view v-if="imageUrl" class="image-preview">
-            <image :src="imageUrl" mode="aspectFill" />
+            <SafeImage :src="imageUrl" mode="aspectFill" />
             <view class="image-delete" @click="deleteImage">
               <text>×</text>
             </view>
@@ -82,9 +82,11 @@
 
 <script>
 import { dishApi, fileApi } from '@/utils/api.js'
+import SafeImage from '@/components/SafeImage.vue'
 import userManager from '@/utils/user.js'
 
 export default {
+  components: { SafeImage },
   data() {
     return {
       imageUrl: '',

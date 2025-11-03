@@ -26,9 +26,7 @@ export default {
           if (loginRes.code) {
             // 调用后端登录接口
             userApi.wxLogin({
-              code: loginRes.code,
-              nickname: '用户',
-              avatarUrl: ''
+              code: loginRes.code
             }).then(userInfo => {
               // 保存用户信息
               userManager.saveUserInfo(userInfo)

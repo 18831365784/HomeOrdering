@@ -15,7 +15,7 @@
               @touchstart.stop="onDragStart($event, index)">
           <text class="sort-icon">⋮⋮</text>
         </view>
-        <image v-if="c.iconUrl" class="icon" :src="c.iconUrl" mode="aspectFit" />
+        <SafeImage v-if="c.iconUrl" :src="c.iconUrl" mode="aspectFit" imgClass="icon" />
         <view v-else class="icon placeholder-image">无</view>
         <view class="info">
           <text class="name">{{ c.name }}</text>
@@ -39,7 +39,7 @@
           <view class="upload-row">
             <button class="upload-btn" @click="chooseIcon">选择图标</button>
             <text class="text-muted" v-if="!form.iconUrl">未选择</text>
-            <image v-else class="icon-preview" :src="form.iconUrl" mode="aspectFit" />
+            <SafeImage v-else :src="form.iconUrl" mode="aspectFit" imgClass="icon-preview" />
           </view>
         </view>
         <view class="modal-actions">
@@ -59,8 +59,10 @@
 
 <script>
 import { categoryApi, fileApi } from '@/utils/api.js'
+import SafeImage from '@/components/SafeImage.vue'
 
 export default {
+  components: { SafeImage },
   data() {
     return {
       categories: [],
@@ -205,6 +207,7 @@ export default {
 .dragging { opacity: 0.5; transform: scale(1.05); }
 .drag-over { border: 2rpx dashed #7B5B44; }
 .icon { width: 80rpx; height: 80rpx; border-radius: 12rpx; background:#EFE7DD; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
+:deep(.icon) { width: 80rpx; height: 80rpx; border-radius: 12rpx; }
 .info { flex:1; display:flex; flex-direction: column; gap: 8rpx; }
 .name { font-size: 30rpx; color:#2E2A27; font-weight: bold; }
 .status { font-size: 24rpx; color:#A39A92; }
@@ -222,6 +225,7 @@ export default {
 .upload-row { display:flex; align-items:center; gap: 16rpx; }
 .upload-btn { padding: 12rpx 20rpx; border-radius: 20rpx; font-size: 24rpx; background: #F6F3EF; color: #6A625B; border: none; }
 .icon-preview { width: 64rpx; height: 64rpx; border-radius: 12rpx; background:#EFE7DD; }
+:deep(.icon-preview) { width: 64rpx; height: 64rpx; border-radius: 12rpx; }
 .modal-actions { display:flex; gap: 16rpx; margin-top: 12rpx; }
 .modal-btn { padding: 16rpx 32rpx; border-radius: 24rpx; font-size: 28rpx; border: none; min-width: 120rpx; }
 .cancel-btn { background: #F6F3EF; color: #6A625B; }

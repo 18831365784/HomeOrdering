@@ -58,11 +58,11 @@
             v-for="detail in order.details" 
             :key="detail.dishId"
           >
-            <image 
+            <SafeImage 
               v-if="detail.dishImage" 
               :src="detail.dishImage" 
               mode="aspectFill"
-              class="dish-image"
+              imgClass="dish-image"
             />
             <view v-else class="dish-image placeholder-image">
               <text>无图</text>
@@ -93,8 +93,10 @@
 <script>
 import { orderApi } from '@/utils/api.js'
 import userManager from '@/utils/user.js'
+import SafeImage from '@/components/SafeImage.vue'
 
 export default {
+  components: { SafeImage },
   data() {
     return {
       orders: [],
@@ -259,6 +261,7 @@ export default {
   border-radius: 12rpx;
   flex-shrink: 0;
 }
+:deep(.dish-image) { width: 100rpx; height: 100rpx; border-radius: 12rpx; }
 
 .placeholder-image {
   background-color: #EFE7DD;

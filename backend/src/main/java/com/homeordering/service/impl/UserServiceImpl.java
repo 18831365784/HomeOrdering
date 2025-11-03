@@ -38,11 +38,9 @@ public class UserServiceImpl implements UserService {
     public UserVO wxLogin(WxLoginDTO wxLoginDTO) {
         // 1. 调用微信接口获取openid
         String openid = getOpenidFromWx(wxLoginDTO.getCode());
-        
-        // 开发测试模式：如果微信接口调用失败，使用code作为openid
         if (openid == null) {
-            log.warn("微信接口调用失败，使用开发测试模式");
-            openid = "test_" + wxLoginDTO.getCode();
+            // 获取openid失败，直接终止，不进行任何写入
+            throw new RuntimeException("获取openid失败");
         }
         
         // 2. 查询用户是否存在
@@ -53,17 +51,12 @@ public class UserServiceImpl implements UserService {
             user = new User();
             user.setOpenid(openid);
             user.setUuid(UUID.randomUUID().toString());
+            // 可选：仅当前端提供时保存昵称/头像
             user.setNickname(wxLoginDTO.getNickname());
             user.setAvatarUrl(wxLoginDTO.getAvatarUrl());
             user.setRole(0); // 默认普通用户
             userMapper.insert(user);
             log.info("创建新用户: openid={}, uuid={}", openid, user.getUuid());
-        } else {
-            // 4. 老用户，更新用户信息
-            user.setNickname(wxLoginDTO.getNickname());
-            user.setAvatarUrl(wxLoginDTO.getAvatarUrl());
-            userMapper.update(user);
-            log.info("更新用户信息: openid={}, uuid={}", openid, user.getUuid());
         }
         
         // 5. 构造返回对象

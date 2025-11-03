@@ -31,7 +31,7 @@
         >
           <view class="cat-stack">
             <template v-if="categoryIcons[cat] && (categoryIcons[cat].indexOf('http://') === 0 || categoryIcons[cat].indexOf('https://') === 0 || categoryIcons[cat].indexOf('/uploads/') === 0)">
-              <image class="cat-icon-img" :src="categoryIcons[cat]" mode="aspectFit" />
+              <SafeImage imgClass="cat-icon-img" :src="categoryIcons[cat]" mode="aspectFill" />
             </template>
             <template v-else>
               <text class="cat-icon cat-icon-text">{{ categoryIcons[cat] || '●' }}</text>
@@ -51,16 +51,16 @@
             @click="goToDetail(dish.id)"
           >
             <!-- 菜品图片 -->
-            <view class="dish-image">
-              <image 
-                v-if="dish.imageUrl" 
-                :src="dish.imageUrl" 
-                mode="aspectFill"
-              />
-              <view v-else class="placeholder-image">
+            <template v-if="dish.imageUrl">
+              <view class="dish-image">
+                <SafeImage imgClass="dish-image-img" :src="dish.imageUrl" mode="aspectFill" />
+              </view>
+            </template>
+            <template v-else>
+              <view class="placeholder-image">
                 <text>暂无图片</text>
               </view>
-            </view>
+            </template>
             
             <!-- 菜品信息 -->
             <view class="dish-info">
@@ -110,10 +110,12 @@
 
 <script>
 import { dishApi, categoryApi } from '@/utils/api.js'
+import SafeImage from '@/components/SafeImage.vue'
 import cartManager from '@/utils/cart.js'
 import userManager from '@/utils/user.js'
 
 export default {
+  components: { SafeImage },
   data() {
     return {
       dishes: [],
@@ -389,7 +391,7 @@ export default {
 .cat-stack { display:flex; flex-direction: column; align-items: center; justify-content:center; gap: 8rpx; width: 100%; }
 .cat-icon { width: 48rpx; text-align: center; }
 .cat-icon-text { font-size: 40rpx; }
-.cat-icon-img { width: 56rpx; height: 56rpx; }
+:deep(.cat-icon-img) { width: 56rpx; height: 56rpx; }
 .cat-text { font-size: 28rpx; color: #2E2A27; }
 
 /* 右侧菜品容器 */
@@ -430,14 +432,14 @@ export default {
   justify-content: center;
 }
 
-.dish-image image {
-  width: 100%;
-  height: 100%;
+:deep(.dish-image-img) {
+  width: 190rpx;
+  height: 190rpx;
 }
 
 .placeholder-image {
-  width: 100%;
-  height: 100%;
+  width: 180rpx;
+  height: 180rpx;
   display: flex;
   align-items: center;
   justify-content: center;

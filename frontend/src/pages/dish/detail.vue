@@ -3,10 +3,11 @@
     <view v-if="dish" class="dish-detail">
       <!-- 菜品图片 -->
       <view class="dish-banner">
-        <image 
+        <SafeImage 
           v-if="dish.imageUrl" 
           :src="dish.imageUrl" 
           mode="aspectFill"
+          imgClass="dish-banner-img"
         />
         <view v-else class="placeholder-image">
           <text>暂无图片</text>
@@ -105,9 +106,11 @@
 
 <script>
 import { dishApi } from '@/utils/api.js'
+import SafeImage from '@/components/SafeImage.vue'
 import cartManager from '@/utils/cart.js'
 
 export default {
+  components: { SafeImage },
   data() {
     return {
       dishId: null,
@@ -358,7 +361,7 @@ export default {
   background-color: #EFE7DD;
 }
 
-.dish-banner image {
+:deep(.dish-banner-img) {
   width: 100%;
   height: 100%;
 }

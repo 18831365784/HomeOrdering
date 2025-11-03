@@ -4,9 +4,10 @@
     <view v-if="cartItems.length > 0" class="cart-list">
       <view class="cart-item card" v-for="item in cartItems" :key="item.id">
         <view class="item-image">
-          <image 
+          <SafeImage 
             v-if="item.imageUrl" 
             :src="item.imageUrl" 
+            imgClass="item-image-img"
             mode="aspectFill"
           />
           <view v-else class="placeholder-image">
@@ -72,8 +73,10 @@
 import cartManager from '@/utils/cart.js'
 import { orderApi } from '@/utils/api.js'
 import userManager from '@/utils/user.js'
+import SafeImage from '@/components/SafeImage.vue'
 
 export default {
+  components: { SafeImage },
   data() {
     return {
       cartItems: [],
@@ -277,7 +280,7 @@ export default {
   background-color: #EFE7DD;
 }
 
-.item-image image {
+:deep(.item-image-img) {
   width: 100%;
   height: 100%;
 }

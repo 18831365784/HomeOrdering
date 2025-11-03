@@ -15,7 +15,7 @@
               @touchstart.stop="onDragStart($event, index)">
           <text class="sort-icon">⋮⋮</text>
         </view>
-        <image v-if="dish.imageUrl" class="dish-image" :src="dish.imageUrl" mode="aspectFit" />
+        <SafeImage v-if="dish.imageUrl" :src="dish.imageUrl" mode="aspectFit" imgClass="dish-image" />
         <view v-else class="dish-image placeholder-image">无</view>
         <view class="info">
           <text class="name">{{ dish.name }}</text>
@@ -42,7 +42,7 @@
           <view class="upload-row">
             <button class="upload-btn" @click="chooseImage">选择图片</button>
             <text class="text-muted" v-if="!form.imageUrl">未选择</text>
-            <image v-else class="image-preview" :src="form.imageUrl" mode="aspectFit" />
+            <SafeImage v-else :src="form.imageUrl" mode="aspectFit" imgClass="image-preview" />
           </view>
           <view class="category-select">
             <text class="label">分类：</text>
@@ -186,8 +186,10 @@
 
 <script>
 import { dishApi, categoryApi, fileApi } from '@/utils/api.js'
+import SafeImage from '@/components/SafeImage.vue'
 
 export default {
+  components: { SafeImage },
   data() {
     return {
       dishes: [],
@@ -492,6 +494,7 @@ export default {
 .dragging { opacity: 0.5; transform: scale(1.05); }
 .drag-over { border: 2rpx dashed #7B5B44; }
 .dish-image { width: 80rpx; height: 80rpx; border-radius: 12rpx; background:#EFE7DD; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
+:deep(.dish-image) { width: 80rpx; height: 80rpx; border-radius: 12rpx; }
 .info { flex:1; display:flex; flex-direction: column; gap: 8rpx; }
 .name { font-size: 30rpx; color:#2E2A27; font-weight: bold; }
 .price { font-size: 28rpx; color:#7B5B44; font-weight: bold; }
@@ -566,6 +569,7 @@ export default {
   border: 2rpx solid #E2D8CC;
   object-fit: cover;
 }
+:deep(.image-preview) { width: 80rpx; height: 80rpx; border-radius: 16rpx; }
 
 .category-select { 
   display: flex; 
