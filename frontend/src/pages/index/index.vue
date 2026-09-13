@@ -2,9 +2,16 @@
   <view class="container">
     <!-- 搜索栏 -->
     <view class="search-bar">
-      <view class="search-shell">
-        <text class="search-icon">🔎</text>
-        <input class="search-input" placeholder="搜索美食、饮品..." v-model="searchKeyword" @input="onSearch" />
+      <view class="search-container">
+        <text class="search-icon">🔍</text>
+        <input
+          class="search-input"
+          placeholder="搜索你喜欢的美食..."
+          v-model="searchKeyword"
+          @input="onSearch"
+          border="none"
+          :style="{ border: 'none' }"
+        />
       </view>
     </view>
     
@@ -93,18 +100,6 @@
         </view>
       </view>
     </view>
-    
-    <!-- 管理员菜品管理入口（右下角主悬浮） -->
-    <view v-if="isAdmin" class="fab-button primary-bg" @click="goDishManage">
-      <text class="fab-icon">🍽️</text>
-    </view>
-
-    <!-- 管理员分类管理入口（右下角次悬浮） -->
-    <view v-if="isAdmin" class="fab-button fab-secondary accent-bg" @click="goCategoryManage">
-      <text class="fab-icon">🏷️</text>
-    </view>
-
-    <!-- 已移除内嵌新增分类弹窗，改为单独分类管理页 -->
   </view>
 </template>
 
@@ -179,13 +174,14 @@ export default {
     // 加载分类列表
     async loadCategories() {
       try {
-        const list = await categoryApi.getList(1)
+        const uuid = userManager.getUuid()
+        const list = await categoryApi.getList(1, uuid)
         this.categories = list.map(c => c.name)
         // 合并后端图标到映射（如果有）
         list.forEach(c => {
           if (c.iconUrl) this.categoryIcons[c.name] = c.iconUrl
         })
-        
+
       } catch (e) {
         console.error('加载分类失败', e)
       }
@@ -211,9 +207,10 @@ export default {
     
     // 检查管理员状态
     checkAdminStatus() {
-      this.isAdmin = userManager.isAdmin()
+      const userInfo = userManager.getUserInfo()
+      this.isAdmin = userInfo && userInfo.role === 1
       console.log('管理员状态:', this.isAdmin)
-      console.log('用户信息:', userManager.getUserInfo())
+      console.log('用户信息:', userInfo)
     },
     
     // 选择分类
@@ -246,7 +243,8 @@ export default {
     async loadDishes() {
       try {
         uni.showLoading({ title: '加载中...' })
-        const dishes = await dishApi.getList(1) // 只查询启用的菜品
+        const uuid = userManager.getUuid()
+        const dishes = await dishApi.getList(1, uuid) // 只查询启用的菜品
         this.dishes = dishes
         this.filteredDishes = dishes
       } catch (error) {
@@ -299,31 +297,39 @@ export default {
 }
 
 .search-bar {
-  padding: 20rpx;
-  background-color: #F6F3EF;
+  padding: 16rpx 24rpx;
+  padding-top: calc(16rpx + constant(safe-area-inset-top));
+  padding-top: calc(16rpx + env(safe-area-inset-top));
+  background: #FFFFFF;
 }
 
-.search-shell {
+.search-container {
   display: flex;
   align-items: center;
-  background-color: #ffffff;
-  border-radius: 999rpx;
-  padding: 16rpx 24rpx;
-  box-shadow: 0 6rpx 18rpx rgba(123, 91, 68, 0.06);
+  background: #F5F5F5;
+  border-radius: 40rpx;
+  padding: 0 28rpx;
+  height: 80rpx;
+  box-sizing: border-box;
 }
 
 .search-icon {
-  margin-right: 12rpx;
-  color: #A39A92;
-  font-size: 28rpx;
+  font-size: 32rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
-  background-color: transparent;
-  border-radius: 999rpx;
-  padding: 10rpx 6rpx;
+  background: transparent;
   font-size: 28rpx;
+  color: #212121;
+  height: 80rpx;
+  line-height: 80rpx;
+}
+
+.search-input::placeholder {
+  color: #BDBDBD;
 }
 
 /* 主内容区：左右布局 */
@@ -337,20 +343,20 @@ export default {
 /* 左侧分类栏 */
 .category-sidebar {
   width: 160rpx;
-  background-color: #F0E9E1;
+  background-color: #FFFFFF;
   overflow-y: auto;
   overflow-x: hidden;
   position: fixed;
   left: 0;
-  top: 128rpx; /* 稍微向下调整，与右侧菜品栏对齐 */
+  top: 120rpx;
   height: calc(100vh - 120rpx);
-  z-index: 900;
-  -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
-  scrollbar-width: none; /* Firefox 隐藏滚动条 */
-  -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
+  z-index: 90;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border-right: 1rpx solid #F5F5F5;
 }
 
-/* Webkit 浏览器隐藏滚动条 */
 .category-sidebar::-webkit-scrollbar {
   display: none;
 }
@@ -371,8 +377,8 @@ export default {
 }
 
 .category-item.active {
-  background-color: #ffffff;
-  color: #7B5B44;
+  background-color: #FFF5F5;
+  color: #FF6B6B;
   font-weight: bold;
 }
 
@@ -383,9 +389,9 @@ export default {
   top: 50%;
   transform: translateY(-50%);
   width: 6rpx;
-  height: 40rpx;
-  background-color: #7B5B44;
-  border-radius: 0 4rpx 4rpx 0;
+  height: 48rpx;
+  background-color: #FF6B6B;
+  border-radius: 0 6rpx 6rpx 0;
 }
 
 .cat-stack { display:flex; flex-direction: column; align-items: center; justify-content:center; gap: 8rpx; width: 100%; }
@@ -417,16 +423,21 @@ export default {
   background-color: #ffffff;
   border-radius: 24rpx;
   padding: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(123, 91, 68, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(255, 107, 107, 0.08);
+  transition: all 0.2s ease;
+}
+
+.dish-item:active {
+  box-shadow: 0 6rpx 20rpx rgba(255, 107, 107, 0.12);
 }
 
 .dish-image {
   width: 180rpx;
   height: 180rpx;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   overflow: hidden;
   flex-shrink: 0;
-  background-color: #EFE7DD;
+  background: linear-gradient(135deg, #FAFAFA 0%, #F0F0F0 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -443,7 +454,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #cccccc;
+  color: #BDBDBD;
   font-size: 24rpx;
 }
 
@@ -457,12 +468,12 @@ export default {
 .dish-name {
   font-size: 32rpx;
   font-weight: bold;
-  color: #2E2A27;
+  color: #212121;
 }
 
 .dish-desc {
   font-size: 24rpx;
-  color: #6A625B;
+  color: #616161;
   line-height: 1.4;
   word-wrap: break-word;
   word-break: break-word;
@@ -477,13 +488,13 @@ export default {
 
 .price {
   font-size: 32rpx;
-  color: #7B5B44;
+  color: #FF6B6B;
   font-weight: bold;
 }
 
 .order-count {
   font-size: 24rpx;
-  color: #A39A92;
+  color: #9E9E9E;
 }
 
 .dish-action {
@@ -493,48 +504,48 @@ export default {
 }
 
 .add-btn {
-  width: 56rpx;
-  height: 56rpx;
+  width: 64rpx;
+  height: 64rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  font-size: 36rpx;
+  font-size: 40rpx;
   font-weight: bold;
-  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
-  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.25);
-  border: 2rpx solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+  box-shadow: 0 6rpx 20rpx rgba(255, 107, 107, 0.35);
+  border: 3rpx solid rgba(255, 255, 255, 0.3);
   transition: all 0.2s ease;
 }
 
 .add-btn:active {
-  transform: scale(0.95);
-  box-shadow: 0 2rpx 8rpx rgba(123, 91, 68, 0.35);
+  transform: scale(0.9);
+  box-shadow: 0 4rpx 12rpx rgba(255, 107, 107, 0.45);
 }
 
-.add-plus { 
-  line-height: 1; 
-  margin-top: -2rpx; /* 微调加号位置 */
+.add-plus {
+  line-height: 1;
+  margin-top: -2rpx;
 }
 
 .choose-btn {
-  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
   color: #fff;
   border: none;
-  border-radius: 16rpx;
-  padding: 0rpx 20rpx;
-  font-size: 24rpx;
+  border-radius: 50rpx;
+  padding: 0 24rpx;
+  font-size: 26rpx;
   font-weight: 600;
-  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.3);
+  box-shadow: 0 6rpx 20rpx rgba(255, 107, 107, 0.35);
   transition: all 0.2s ease;
-  min-width: 70rpx;
+  min-width: 90rpx;
   text-align: center;
 }
 
 .choose-btn:active {
   transform: scale(0.95);
-  box-shadow: 0 2rpx 8rpx rgba(123, 91, 68, 0.4);
+  box-shadow: 0 4rpx 12rpx rgba(255, 107, 107, 0.45);
 }
 
 .empty-state {

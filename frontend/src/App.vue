@@ -1,11 +1,11 @@
 <script>
-import { userApi } from '@/utils/api.js'
 import userManager from '@/utils/user.js'
+import familyApi from '@/utils/familyApi.js'
 
 export default {
   onLaunch: function() {
-    console.log('App Launch')
-    this.checkLogin()
+    console.log('App Launch - 检查登录状态和家庭状态')
+    this.checkStatus()
   },
   onShow: function() {
     console.log('App Show')
@@ -13,39 +13,51 @@ export default {
   onHide: function() {
     console.log('App Hide')
   },
-  
+
   methods: {
-    // 检查登录状态
-    checkLogin() {
-      // 每次都重新登录，以获取最新的用户信息（包括 role）
-      uni.login({
-        provider: 'weixin',
-        success: (loginRes) => {
-          console.log('微信登录返回:', loginRes)
-          
-          if (loginRes.code) {
-            // 调用后端登录接口
-            userApi.wxLogin({
-              code: loginRes.code
-            }).then(userInfo => {
-              // 保存用户信息
-              userManager.saveUserInfo(userInfo)
-              console.log('登录成功，用户信息:', userInfo)
-              console.log('是否为管理员:', userInfo.role === 1)
-              
-              // 触发全局事件，通知页面刷新权限状态
-              uni.$emit('userInfoUpdated', userInfo)
-            }).catch(error => {
-              console.error('后端登录失败:', error)
-            })
-          } else {
-            console.error('获取code失败:', loginRes)
-          }
-        },
-        fail: (error) => {
-          console.error('微信登录失败:', error)
+    // 检查登录状态和家庭状态
+    async checkStatus() {
+      if (!userManager.isLoggedIn()) {
+        // 未登录，跳转到登录页
+        uni.reLaunch({
+          url: '/pages/login/index'
+        })
+        return
+      }
+
+      // 已登录，检查家庭状态
+      try {
+        const uuid = userManager.getUuid()
+        if (!uuid) {
+          uni.reLaunch({ url: '/pages/login/index' })
+          return
         }
-      })
+
+        const familyInfo = await familyApi.getFamilyInfo(uuid)
+
+        if (familyInfo) {
+          // 已加入家庭，保存家庭信息到本地
+          userManager.saveUserInfo({
+            ...userManager.getUserInfo(),
+            familyId: familyInfo.id,
+            familyName: familyInfo.name,
+            isAdmin: familyInfo.isAdmin
+          })
+          console.log('用户已加入家庭:', familyInfo.name)
+        } else {
+          // 未加入家庭，跳转到家庭页
+          console.log('用户未加入家庭，跳转到家庭页')
+          uni.reLaunch({
+            url: '/pages/family/index'
+          })
+        }
+      } catch (e) {
+        console.error('检查家庭状态失败', e)
+        // 出错也跳转到家庭页
+        uni.reLaunch({
+          url: '/pages/family/index'
+        })
+      }
     }
   }
 }

@@ -60,6 +60,7 @@
 <script>
 import { categoryApi, fileApi } from '@/utils/api.js'
 import SafeImage from '@/components/SafeImage.vue'
+import userManager from '@/utils/user.js'
 
 export default {
   components: { SafeImage },
@@ -74,10 +75,13 @@ export default {
     }
   },
   onShow() { this.load() },
+  onLoad() {
+    this.uuid = userManager.getUuid()
+  },
   methods: {
     async load() {
       try {
-        this.categories = await categoryApi.getList(null)
+        this.categories = await categoryApi.getList(null, this.uuid)
         // 按sort字段排序
         this.categories.sort((a, b) => (a.sort || 0) - (b.sort || 0))
       } catch (e) { console.error(e) }
@@ -87,7 +91,7 @@ export default {
     close() { this.showModal = false },
     async toggle(c) {
       try {
-        await categoryApi.update({ id: c.id, status: c.status === 1 ? 0 : 1 })
+        await categoryApi.update({ id: c.id, status: c.status === 1 ? 0 : 1 }, this.uuid)
         this.load()
         // 通知首页刷新数据
         uni.$emit('categoryUpdated')
@@ -102,12 +106,12 @@ export default {
       if (!this.form.name) { uni.showToast({ title: '请填写分类名称', icon: 'none' }); return }
       try {
         if (this.form.id) {
-          await categoryApi.update(this.form)
+          await categoryApi.update(this.form, this.uuid)
         } else {
           // 新增时设置sort为当前最大sort+1
           const maxSort = Math.max(...this.categories.map(c => c.sort || 0), 0)
           this.form.sort = maxSort + 1
-          await categoryApi.add(this.form)
+          await categoryApi.add(this.form, this.uuid)
         }
         uni.showToast({ title: '已保存', icon: 'success' })
         this.showModal = false
@@ -177,8 +181,8 @@ export default {
         })
         
         // 批量更新后端
-        const updatePromises = this.categories.map(category => 
-          categoryApi.update({ id: category.id, sort: category.sort })
+        const updatePromises = this.categories.map(category =>
+          categoryApi.update({ id: category.id, sort: category.sort }, this.uuid)
         )
         
         await Promise.all(updatePromises)

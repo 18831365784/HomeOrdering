@@ -187,6 +187,7 @@
 <script>
 import { dishApi, categoryApi, fileApi } from '@/utils/api.js'
 import SafeImage from '@/components/SafeImage.vue'
+import userManager from '@/utils/user.js'
 
 export default {
   components: { SafeImage },
@@ -197,6 +198,7 @@ export default {
       categoryNames: [],
       categoryIndex: 0,
       showModal: false,
+      uuid: '',
       form: { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, status: 1, sort: 0, extensions: '' },
       useVisualEditor: true,
       vizOptions: [],
@@ -212,8 +214,11 @@ export default {
       return this.categoryNames[this.categoryIndex] || '请选择分类'
     }
   },
-  onShow() { 
-    this.load() 
+  onLoad() {
+    this.uuid = userManager.getUuid()
+  },
+  onShow() {
+    this.load()
     this.loadCategories()
   },
   methods: {
@@ -302,7 +307,8 @@ export default {
     },
     async load() {
       try {
-        this.dishes = await dishApi.getList()
+        // 管理页面显示所有菜品，包括已下架的
+        this.dishes = await dishApi.getList(null, this.uuid)
         // 按sort字段排序
         this.dishes.sort((a, b) => (a.sort || 0) - (b.sort || 0))
       } catch (e) { console.error(e) }
@@ -310,7 +316,7 @@ export default {
     
     async loadCategories() {
       try {
-        const list = await categoryApi.getList(1)
+        const list = await categoryApi.getList(1, this.uuid)
         this.categories = list
         this.categoryNames = list.map(c => c.name)
       } catch (e) { console.error(e) }
@@ -348,7 +354,7 @@ export default {
     
     async toggle(dish) {
       try {
-        await dishApi.update({ id: dish.id, status: dish.status === 1 ? 0 : 1 })
+        await dishApi.update({ id: dish.id, status: dish.status === 1 ? 0 : 1 }, this.uuid)
         this.load()
         // 通知首页刷新数据
         uni.$emit('dishUpdated')
@@ -390,12 +396,12 @@ export default {
       
       try {
         if (this.form.id) {
-          await dishApi.update(this.form)
+          await dishApi.update(this.form, this.uuid)
         } else {
           // 新增时设置sort为当前最大sort+1
           const maxSort = Math.max(...this.dishes.map(d => d.sort || 0), 0)
           this.form.sort = maxSort + 1
-          await dishApi.add(this.form)
+          await dishApi.add(this.form, this.uuid)
         }
         uni.showToast({ title: '已保存', icon: 'success' })
         this.showModal = false
@@ -464,8 +470,8 @@ export default {
         })
         
         // 批量更新后端
-        const updatePromises = this.dishes.map(dish => 
-          dishApi.update({ id: dish.id, sort: dish.sort })
+        const updatePromises = this.dishes.map(dish =>
+          dishApi.update({ id: dish.id, sort: dish.sort }, this.uuid)
         )
         
         await Promise.all(updatePromises)

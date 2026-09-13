@@ -90,6 +90,7 @@ export default {
   data() {
     return {
       imageUrl: '',
+      uuid: '',
       categories: ['肉类', '蔬菜', '主食', '凉菜', '汤'],
       formData: {
         name: '',
@@ -103,6 +104,8 @@ export default {
   },
   
   onLoad() {
+    // 初始化uuid
+    this.uuid = userManager.getUuid()
     // 检查是否有权限
     if (!userManager.isAdmin()) {
       uni.showModal({
@@ -222,7 +225,7 @@ export default {
           price: parseFloat(this.formData.price)
         }
         
-        await dishApi.add(submitData)
+        await dishApi.add(submitData, this.uuid)
         
         uni.hideLoading()
         

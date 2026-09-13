@@ -12,13 +12,34 @@ import java.util.List;
  */
 @Data
 public class OrderVO implements Serializable {
-    
+
     private Long id;
     private String orderNo;
     private BigDecimal totalAmount;
     private Integer status;
     private String statusText;
     private String remark;
+
+    /**
+     * 下单人UUID
+     */
+    private String customerUuid;
+
+    /**
+     * 下单客户昵称
+     */
+    private String customerName;
+
+    /**
+     * 制作者UUID
+     */
+    private String makerUuid;
+
+    /**
+     * 制作者昵称
+     */
+    private String makerName;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;
     private List<OrderDetailVO> details;

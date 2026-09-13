@@ -1,18 +1,24 @@
 package com.homeordering.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.homeordering.entity.Category;
 import com.homeordering.mapper.CategoryMapper;
 import com.homeordering.service.CategoryService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * 分类服务实现类
+ */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
 
-    @Autowired
-    private CategoryMapper categoryMapper;
+    private final CategoryMapper categoryMapper;
 
     @Override
     public Long addCategory(Category category) {
@@ -33,18 +39,23 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<Category> list(Integer status) {
-        return categoryMapper.selectList(status);
+        LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
+        if (status != null) {
+            queryWrapper.eq(Category::getStatus, status);
+        }
+        queryWrapper.orderByAsc(Category::getSort);
+        return categoryMapper.selectList(queryWrapper);
     }
 
     @Override
     public boolean updateCategory(Category category) {
-        return categoryMapper.update(category) > 0;
+        log.info("更新分类: id={}", category.getId());
+        return categoryMapper.updateById(category) > 0;
     }
 
     @Override
     public boolean deleteById(Long id) {
+        log.info("删除分类: id={}", id);
         return categoryMapper.deleteById(id) > 0;
     }
 }
-
-

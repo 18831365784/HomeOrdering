@@ -42,20 +42,43 @@
     <!-- 空购物车 -->
     <view v-else class="empty-cart">
       <text class="empty-text">购物车空空如也~</text>
-      <button class="btn btn-primary primary-bg" @click="goShopping">去点餐</button>
+      <button class="btn btn-coral" @click="goShopping">去点餐</button>
     </view>
     
     <!-- 备注 -->
     <view v-if="cartItems.length > 0" class="remark-card card">
       <text class="label">备注信息</text>
-      <textarea 
-        class="remark-input" 
-        v-model="remark" 
+      <textarea
+        class="remark-input"
+        v-model="remark"
         placeholder="有什么想对老公说的吗？❤️"
         maxlength="200"
       />
     </view>
-    
+
+    <!-- 制作人选择 -->
+    <view v-if="cartItems.length > 0" class="maker-section card">
+      <view class="maker-header">
+        <text class="maker-title">选择制作人</text>
+      </view>
+      <view class="maker-list">
+        <view
+          v-for="member in familyMembers"
+          :key="member.uuid"
+          class="maker-item"
+          :class="{ active: selectedMaker?.uuid === member.uuid }"
+          @click="selectMaker(member)"
+        >
+          <image class="maker-avatar" :src="member.avatarUrl || '/static/icons/home.png'" mode="aspectFill" />
+          <view class="maker-info">
+            <text class="maker-name">{{ member.nickname || '用户' }}</text>
+            <text v-if="member.isAdmin" class="maker-tag">管理员</text>
+          </view>
+          <view v-if="selectedMaker?.uuid === member.uuid" class="maker-check">✓</view>
+        </view>
+      </view>
+    </view>
+
     <!-- 底部结算 -->
     <view v-if="cartItems.length > 0" class="bottom-bar">
       <view class="total-info">
@@ -72,6 +95,7 @@
 <script>
 import cartManager from '@/utils/cart.js'
 import { orderApi } from '@/utils/api.js'
+import familyApi from '@/utils/familyApi.js'
 import userManager from '@/utils/user.js'
 import SafeImage from '@/components/SafeImage.vue'
 
@@ -80,29 +104,57 @@ export default {
   data() {
     return {
       cartItems: [],
-      remark: ''
+      remark: '',
+      familyMembers: [],
+      selectedMaker: null
     }
   },
-  
+
   computed: {
     totalAmount() {
-      // 强制重新计算，确保响应式更新
       const amount = cartManager.getTotalAmount()
       console.log('计算总金额:', amount, '购物车项目:', this.cartItems.length)
       return amount.toFixed(2)
     }
   },
-  
+
   onShow() {
     this.loadCart()
+    this.loadFamilyMembers()
   },
-  
+
   methods: {
     // 加载购物车
     loadCart() {
       this.cartItems = cartManager.getCart()
       console.log('购物车加载完成:', this.cartItems)
       console.log('总金额:', cartManager.getTotalAmount())
+    },
+
+    // 加载家庭成员
+    async loadFamilyMembers() {
+      try {
+        const uuid = userManager.getUuid()
+        if (!uuid) return
+
+        const info = await familyApi.getFamilyInfo(uuid)
+        if (info && info.members) {
+          this.familyMembers = info.members
+          // 默认选中自己
+          const currentUser = userManager.getUserInfo()
+          const myInfo = info.members.find(m => m.uuid === uuid)
+          if (myInfo) {
+            this.selectedMaker = myInfo
+          }
+        }
+      } catch (e) {
+        console.error('加载家庭成员失败', e)
+      }
+    },
+
+    // 选择制作人
+    selectMaker(member) {
+      this.selectedMaker = member
     },
     
     // 减少数量
@@ -153,10 +205,14 @@ export default {
         })
         return
       }
-      
+
       try {
         uni.showLoading({ title: '提交中...' })
-        
+
+        // 获取用户信息
+        const userInfo = userManager.getUserInfo()
+        const uuid = userManager.getUuid()
+
         // 构建订单数据，包含扩展选项信息
         const orderData = {
           remark: this.buildOrderRemark(),
@@ -164,9 +220,14 @@ export default {
             dishId: item.id,
             quantity: item.quantity,
             unitPrice: item.price // 传递包含选项价格的实际单价
-          }))
+          })),
+          customerUuid: uuid,
+          customerName: userInfo?.nickname || '用户',
+          makerUuid: this.selectedMaker?.uuid || uuid,
+          makerName: this.selectedMaker?.nickname || userInfo?.nickname || '用户',
+          familyId: userInfo?.familyId || null
         }
-        
+
         console.log('提交订单数据:', orderData)
         console.log('购物车项目详情:', this.cartItems)
         
@@ -180,7 +241,7 @@ export default {
         uni.hideLoading()
         
         // 根据用户角色显示不同提示
-        const isAdmin = userManager.isAdmin()
+        const isAdmin = userInfo && userInfo.role === 1
         const title = isAdmin ? '订单创建成功' : '订单提交成功'
         const content = isAdmin ? '下单成功' : '等待老公确认中...❤️'
         
@@ -253,7 +314,11 @@ export default {
 .container {
   min-height: 100vh;
   padding: 20rpx;
+  padding-top: calc(20rpx + constant(safe-area-inset-top));
+  padding-top: calc(20rpx + env(safe-area-inset-top));
   padding-bottom: 180rpx;
+  padding-bottom: calc(180rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
 }
 
 .cart-list {
@@ -268,7 +333,7 @@ export default {
   align-items: center;
   gap: 20rpx;
   border-radius: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(123, 91, 68, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(255, 107, 107, 0.08);
 }
 
 .item-image {
@@ -277,7 +342,7 @@ export default {
   border-radius: 16rpx;
   overflow: hidden;
   flex-shrink: 0;
-  background-color: #EFE7DD;
+  background: linear-gradient(135deg, #FAFAFA 0%, #F0F0F0 100%);
 }
 
 :deep(.item-image-img) {
@@ -303,7 +368,7 @@ export default {
 
 .item-name {
   font-size: 28rpx;
-  color: #2E2A27;
+  color: #212121;
   font-weight: bold;
 }
 
@@ -315,33 +380,43 @@ export default {
 }
 
 .quantity-control {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 20rpx;
+  background: #F5F5F5;
+  border-radius: 50rpx;
+  padding: 4rpx;
 }
 
 .control-btn {
-  width: 44rpx;
-  height: 44rpx;
-  border: 2rpx solid #E2D8CC;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
-  color: #6A625B;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #4ECDC4;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.control-btn:active {
+  background: rgba(78, 205, 196, 0.2);
 }
 
 .quantity {
   font-size: 28rpx;
   font-weight: bold;
-  min-width: 40rpx;
+  min-width: 56rpx;
   text-align: center;
+  color: #212121;
 }
 
 .delete-btn {
   font-size: 24rpx;
-  color: #A39A92;
+  color: #9E9E9E;
   padding: 8rpx 16rpx;
 }
 
@@ -368,11 +443,17 @@ export default {
 .remark-input {
   width: 100%;
   min-height: 150rpx;
-  background-color: #F6F3EF;
+  background-color: #F5F5F5;
+  border: 2rpx solid transparent;
   border-radius: 16rpx;
   padding: 20rpx;
   font-size: 28rpx;
   box-sizing: border-box;
+}
+
+.remark-input:focus {
+  border-color: #FF6B6B;
+  background: #FFFFFF;
 }
 
 .bottom-bar {
@@ -380,13 +461,16 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #ffffff;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
   padding: 24rpx 32rpx;
-  box-shadow: 0 -8rpx 24rpx rgba(123, 91, 68, 0.08);
+  padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1rpx solid rgba(123, 91, 68, 0.1);
 }
 
 .total-info {
@@ -398,45 +482,31 @@ export default {
 
 .total-label {
   font-size: 28rpx;
-  color: #6A625B;
+  color: #616161;
   font-weight: 500;
 }
 
 .total-price {
-  font-size: 32rpx;
+  font-size: 36rpx;
   font-weight: bold;
-  color: #7B5B44;
+  color: #FF6B6B;
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
   border: none;
-  border-radius: 50rpx;
-  padding: 10rpx 20rpx;
+  border-radius: 40rpx;
+  padding: 20rpx 40rpx;
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  box-shadow: 0 6rpx 20rpx rgba(123, 91, 68, 0.25);
-  transition: all 0.2s ease;
-  min-width: 200rpx;
   justify-content: center;
-}
-
-.submit-btn:active {
-  transform: scale(0.98);
-  box-shadow: 0 4rpx 16rpx rgba(123, 91, 68, 0.35);
+  transition: all 0.2s ease;
 }
 
 .submit-text {
   color: #ffffff;
-  font-size: 30rpx;
-  font-weight: bold;
-}
-
-.submit-icon {
-  color: #ffffff;
   font-size: 28rpx;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 /* 扩展选项样式 */
@@ -448,11 +518,87 @@ export default {
 }
 
 .option-tag {
-  background: #F0E9E1;
-  color: #7B5B44;
-  padding: 4rpx 12rpx;
+  background: rgba(255, 107, 107, 0.1);
+  color: #FF6B6B;
+  padding: 6rpx 16rpx;
   border-radius: 12rpx;
   font-size: 22rpx;
-  border: 1rpx solid #E2D8CC;
+}
+
+/* 制作人选择 */
+.maker-section {
+  margin: 0 20rpx 180rpx;
+}
+
+.maker-header {
+  margin-bottom: 20rpx;
+}
+
+.maker-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #212121;
+}
+
+.maker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.maker-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx;
+  background: #F8F8F8;
+  border-radius: 16rpx;
+  border: 3rpx solid transparent;
+  transition: all 0.2s ease;
+}
+
+.maker-item.active {
+  border-color: #4ECDC4;
+  background: rgba(78, 205, 196, 0.1);
+}
+
+.maker-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+}
+
+.maker-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.maker-name {
+  font-size: 30rpx;
+  color: #212121;
+  font-weight: 500;
+}
+
+.maker-tag {
+  font-size: 20rpx;
+  color: #4ECDC4;
+  background: rgba(78, 205, 196, 0.15);
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+}
+
+.maker-check {
+  width: 48rpx;
+  height: 48rpx;
+  background: linear-gradient(135deg, #4ECDC4 0%, #7EDDD6 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: bold;
 }
 </style>

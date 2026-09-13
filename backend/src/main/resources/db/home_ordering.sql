@@ -109,15 +109,37 @@ CREATE TABLE `order`  (
   `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `order_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '订单号',
   `total_amount` decimal(10, 2) NOT NULL COMMENT '订单总金额',
-  `status` tinyint(0) NOT NULL DEFAULT 0 COMMENT '订单状态: 0-等待老公确认 1-老公大人已许可 2-已完成',
+  `status` tinyint(0) NOT NULL DEFAULT 0 COMMENT '订单状态: -1-已取消 0-待接单 1-制作中 2-已完成',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+  `customer_uuid` varchar(100) NULL COMMENT '下单人UUID',
+  `customer_name` varchar(50) NULL COMMENT '下单客户昵称',
+  `maker_uuid` varchar(100) NULL COMMENT '制作者UUID',
+  `maker_name` varchar(50) NULL COMMENT '制作者昵称',
+  `family_id` bigint NULL COMMENT '家庭ID',
   `create_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
   `update_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_order_no`(`order_no`) USING BTREE,
   INDEX `idx_status`(`status`) USING BTREE,
-  INDEX `idx_create_time`(`create_time`) USING BTREE
+  INDEX `idx_create_time`(`create_time`) USING BTREE,
+  INDEX `idx_customer_uuid`(`customer_uuid`) USING BTREE,
+  INDEX `idx_maker_uuid`(`maker_uuid`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 20 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for family
+-- ----------------------------
+DROP TABLE IF EXISTS `family`;
+CREATE TABLE `family`  (
+  `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '家庭名称',
+  `invite_code` varchar(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '邀请码',
+  `admin_uuid` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '管理员UUID',
+  `create_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+  `update_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_invite_code`(`invite_code`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '家庭表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of order
@@ -161,6 +183,7 @@ CREATE TABLE `user`  (
   `uuid` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '用户唯一标识',
   `nickname` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '昵称',
   `avatar_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '头像地址',
+  `balance` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '余额',
   `role` tinyint(0) NOT NULL DEFAULT 0 COMMENT '角色: 0-普通用户 1-管理员',
   `create_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
   `update_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',

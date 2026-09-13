@@ -1,6 +1,13 @@
 {
   "pages": [
     {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "家庭点餐",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "菜品列表"
@@ -21,7 +28,7 @@
     {
       "path": "pages/order/list",
       "style": {
-        "navigationBarTitleText": "订单列表"
+        "navigationBarTitleText": "订单"
       }
     },
     {
@@ -47,10 +54,22 @@
       "style": {
         "navigationBarTitleText": "购物车"
       }
+    },
+    {
+      "path": "pages/user/index",
+      "style": {
+        "navigationBarTitleText": "我的"
+      }
+    },
+    {
+      "path": "pages/family/index",
+      "style": {
+        "navigationBarTitleText": "家庭"
+      }
     }
   ],
   "tabBar": {
-    "color": "#999999",
+    "color": "#9E9E9E",
     "selectedColor": "#FF6B6B",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
@@ -72,6 +91,12 @@
         "text": "订单",
         "iconPath": "static/icons/order.png",
         "selectedIconPath": "static/icons/order-active.png"
+      },
+      {
+        "pagePath": "pages/user/index",
+        "text": "我的",
+        "iconPath": "static/icons/user.png",
+        "selectedIconPath": "static/icons/user-active.png"
       }
     ]
   },
@@ -79,6 +104,6 @@
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "家庭点餐",
     "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#F8F8F8"
+    "backgroundColor": "#FAFAFA"
   }
 }

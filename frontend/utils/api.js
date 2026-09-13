@@ -1,5 +1,6 @@
 // API基础配置
-const BASE_URL = 'http://localhost:8080/api'
+// 开发环境使用 localhost，生产环境使用 ngrok 地址
+const BASE_URL = 'https://unperverted-neida-noncounterfeit.ngrok-free.dev/api'
 
 // 请求封装
 const request = (url, options = {}) => {
@@ -10,6 +11,7 @@ const request = (url, options = {}) => {
       data: options.data || {},
       header: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
         ...options.header
       },
       success: (res) => {
@@ -41,6 +43,9 @@ const uploadFile = (filePath) => {
       url: BASE_URL + '/file/upload',
       filePath: filePath,
       name: 'file',
+      header: {
+        'ngrok-skip-browser-warning': 'true'
+      },
       success: (res) => {
         const data = JSON.parse(res.data)
         if (data.code === 200) {
@@ -64,38 +69,54 @@ const uploadFile = (filePath) => {
   })
 }
 
+// 上传分类图标
+const uploadIcon = (filePath) => {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: BASE_URL + '/file/upload/icon',
+      filePath: filePath,
+      name: 'file',
+      header: { 'ngrok-skip-browser-warning': 'true' },
+      success: (res) => {
+        const data = JSON.parse(res.data)
+        if (data.code === 200) {
+          resolve(data.data)
+        } else {
+          uni.showToast({ title: data.message || '上传失败', icon: 'none' })
+          reject(data)
+        }
+      },
+      fail: (err) => {
+        uni.showToast({ title: '上传失败', icon: 'none' })
+        reject(err)
+      }
+    })
+  })
+}
+
 // 菜品API
 export const dishApi = {
-  // 获取菜品列表
   getList(status) {
     return request('/dish/list', {
       method: 'GET',
       data: { status }
     })
   },
-  
-  // 获取菜品详情
   getDetail(id) {
     return request(`/dish/${id}`)
   },
-  
-  // 添加菜品
   add(data) {
     return request('/dish', {
       method: 'POST',
       data
     })
   },
-  
-  // 更新菜品
   update(data) {
     return request('/dish', {
       method: 'PUT',
       data
     })
   },
-  
-  // 删除菜品
   delete(id) {
     return request(`/dish/${id}`, {
       method: 'DELETE'
@@ -105,36 +126,27 @@ export const dishApi = {
 
 // 订单API
 export const orderApi = {
-  // 创建订单
   create(data) {
     return request('/order', {
       method: 'POST',
       data
     })
   },
-  
-  // 获取订单列表
   getList(status) {
     return request('/order/list', {
       method: 'GET',
       data: { status }
     })
   },
-  
-  // 获取订单详情
   getDetail(id) {
     return request(`/order/${id}`)
   },
-  
-  // 更新订单状态
   updateStatus(id, status) {
     return request(`/order/${id}/status`, {
       method: 'PUT',
       data: { status }
     })
   },
-  
-  // 删除订单
   delete(id) {
     return request(`/order/${id}`, {
       method: 'DELETE'
@@ -144,14 +156,62 @@ export const orderApi = {
 
 // 文件API
 export const fileApi = {
-  // 上传文件
   upload(filePath) {
     return uploadFile(filePath)
+  },
+  uploadIcon(filePath) {
+    return uploadIcon(filePath)
   }
+}
+
+// 用户API
+export const userApi = {
+  checkAdmin(uuid) {
+    return request('/user/checkAdmin', {
+      method: 'GET',
+      data: { uuid }
+    })
+  }
+}
+
+// 认证API
+export const authApi = {
+  wxLogin(data) {
+    return request('/auth/login', {
+      method: 'POST',
+      data
+    })
+  },
+  getCurrentUser() {
+    return request('/auth/me', {
+      method: 'GET'
+    })
+  },
+  logout() {
+    return request('/auth/logout', {
+      method: 'POST'
+    })
+  }
+}
+
+// 分类API
+export const categoryApi = {
+  getList(status) {
+    return request('/category/list', {
+      method: 'GET',
+      data: { status }
+    })
+  },
+  add(data) { return request('/category', { method: 'POST', data }) },
+  update(data) { return request('/category', { method: 'PUT', data }) },
+  delete(id) { return request(`/category/${id}`, { method: 'DELETE' }) }
 }
 
 export default {
   dishApi,
   orderApi,
-  fileApi
+  fileApi,
+  userApi,
+  authApi,
+  categoryApi
 }

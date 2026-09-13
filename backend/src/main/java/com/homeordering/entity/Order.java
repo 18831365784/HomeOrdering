@@ -1,6 +1,8 @@
 package com.homeordering.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -10,42 +12,49 @@ import java.time.LocalDateTime;
  * 订单实体类
  */
 @Data
+@TableName("`order`")
 public class Order implements Serializable {
 
-    /**
-     * 主键ID
-     */
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    /**
-     * 订单号
-     */
     private String orderNo;
 
-    /**
-     * 订单总金额
-     */
     private BigDecimal totalAmount;
 
     /**
-     * 订单状态: 0-待确认 1-已确认 2-已完成
+     * 订单状态: 0-待接单 1-制作中 2-已完成 -1-已取消
      */
     private Integer status;
 
-    /**
-     * 备注
-     */
     private String remark;
 
     /**
-     * 创建时间
+     * 下单人UUID
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private LocalDateTime createTime;
+    private String customerUuid;
 
     /**
-     * 更新时间
+     * 下单客户昵称
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private String customerName;
+
+    /**
+     * 制作者UUID
+     */
+    private String makerUuid;
+
+    /**
+     * 制作者昵称
+     */
+    private String makerName;
+
+    /**
+     * 家庭ID
+     */
+    private Long familyId;
+
+    private LocalDateTime createTime;
+
     private LocalDateTime updateTime;
 }

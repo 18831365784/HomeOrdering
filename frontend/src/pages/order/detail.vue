@@ -69,26 +69,32 @@
       </view>
       
       <!-- 操作按钮 -->
-      <view class="action-buttons" v-if="isAdmin">
-        <button 
-          v-if="order.status === 0" 
-          class="btn btn-primary primary-bg"
-          @click="confirmOrder"
+      <view class="action-buttons" v-if="showActionButton">
+        <!-- 制作人 - 待接单状态 -->
+        <button
+          v-if="isMaker && order.status === 0"
+          class="action-btn action-btn-primary"
+          @click="handleAccept"
         >
-          老公确认
+          接单
         </button>
-        <button 
-          v-if="order.status === 1" 
-          class="btn btn-primary primary-bg"
-          @click="completeOrder"
+
+        <!-- 下单人 - 待接单状态 -->
+        <button
+          v-if="isCustomer && order.status === 0"
+          class="action-btn action-btn-outline"
+          @click="handleCancel"
+        >
+          取消订单
+        </button>
+
+        <!-- 制作人 - 制作中状态 -->
+        <button
+          v-if="isMaker && order.status === 1"
+          class="action-btn action-btn-primary"
+          @click="handleFinish"
         >
           完成订单
-        </button>
-        <button 
-          class="btn btn-secondary"
-          @click="deleteOrder"
-        >
-          删除订单
         </button>
       </view>
     </view>
@@ -111,24 +117,41 @@ export default {
     return {
       orderId: null,
       order: null,
-      isAdmin: false,
+      currentUuid: '',
+      isMaker: false,
+      isCustomer: false,
       extractedOptions: []
     }
   },
-  
+
+  computed: {
+    showActionButton() {
+      return this.isMaker || this.isCustomer
+    }
+  },
+
   onLoad(options) {
     this.orderId = options.id
-    this.checkAdminStatus()
+    this.currentUuid = userManager.getUuid()
     this.loadOrderDetail()
   },
-  
+
   methods: {
-    // 检查管理员状态
-    checkAdminStatus() {
-      this.isAdmin = userManager.isAdmin()
-      console.log('订单详情页管理员状态:', this.isAdmin)
+    // 检查用户角色
+    checkUserRole() {
+      if (!this.order || !this.currentUuid) return
+
+      this.isMaker = this.order.makerUuid === this.currentUuid
+      this.isCustomer = this.order.customerUuid === this.currentUuid
+      console.log('订单详情页角色检查:', {
+        isMaker: this.isMaker,
+        isCustomer: this.isCustomer,
+        orderMaker: this.order.makerUuid,
+        orderCustomer: this.order.customerUuid,
+        currentUuid: this.currentUuid
+      })
     },
-    
+
     // 加载订单详情
     async loadOrderDetail() {
       try {
@@ -139,6 +162,8 @@ export default {
           ...order,
           statusText: this.getStatusText(order.status)
         }
+        // 检查用户角色
+        this.checkUserRole()
         // 提取扩展选项信息
         this.extractedOptions = this.extractOptionsFromRemark(order.remark)
       } catch (error) {
@@ -151,82 +176,71 @@ export default {
         uni.hideLoading()
       }
     },
-    
-    // 确认订单
-    confirmOrder() {
-      uni.showModal({
-        title: '老公大人',
-        content: '确认许可这个订单吗？❤️',
-        confirmText: '许可',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              await orderApi.updateStatus(this.orderId, 1)
-              uni.showToast({
-                title: '已许可',
-                icon: 'success'
-              })
-              this.loadOrderDetail()
-            } catch (error) {
-              console.error('更新订单状态失败:', error)
-            }
-          }
-        }
-      })
-    },
-    
-    // 完成订单
-    completeOrder() {
+
+    // 接单（制作人操作）
+    handleAccept() {
       uni.showModal({
         title: '提示',
-        content: '确认完成这个订单吗？',
+        content: '确定要接单吗？',
         success: async (res) => {
           if (res.confirm) {
             try {
-              await orderApi.updateStatus(this.orderId, 2)
-              uni.showToast({
-                title: '订单已完成',
-                icon: 'success'
-              })
+              await orderApi.acceptOrder(this.orderId, this.currentUuid)
+              uni.showToast({ title: '接单成功', icon: 'success' })
               this.loadOrderDetail()
             } catch (error) {
-              console.error('更新订单状态失败:', error)
+              console.error('接单失败:', error)
             }
           }
         }
       })
     },
-    
-    // 删除订单
-    deleteOrder() {
+
+    // 取消订单（下单人操作）
+    handleCancel() {
       uni.showModal({
         title: '提示',
-        content: '确定要删除这个订单吗？',
+        content: '确定要取消订单吗？',
         success: async (res) => {
           if (res.confirm) {
             try {
-              await orderApi.delete(this.orderId)
-              uni.showToast({
-                title: '已删除',
-                icon: 'success'
-              })
-              setTimeout(() => {
-                uni.navigateBack()
-              }, 1000)
+              await orderApi.cancelOrder(this.orderId, this.currentUuid)
+              uni.showToast({ title: '订单已取消', icon: 'success' })
+              this.loadOrderDetail()
             } catch (error) {
-              console.error('删除订单失败:', error)
+              console.error('取消订单失败:', error)
             }
           }
         }
       })
     },
-    
+
+    // 完成订单（制作人操作）
+    handleFinish() {
+      uni.showModal({
+        title: '提示',
+        content: '确定完成订单吗？',
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              await orderApi.finishOrder(this.orderId, this.currentUuid)
+              uni.showToast({ title: '订单已完成', icon: 'success' })
+              this.loadOrderDetail()
+            } catch (error) {
+              console.error('完成订单失败:', error)
+            }
+          }
+        }
+      })
+    },
+
     // 获取状态文本
     getStatusText(status) {
       const statusMap = {
-        0: '待确认',
-        1: '已确认',
-        2: '已完成'
+        0: '待接单',
+        1: '制作中',
+        2: '已完成',
+        '-1': '已取消'
       }
       return statusMap[status] || '未知状态'
     },
@@ -563,23 +577,34 @@ export default {
   left: 0;
   right: 0;
   background-color: #ffffff;
-  padding: 16rpx 20rpx;
-  box-shadow: 0 -8rpx 24rpx rgba(123, 91, 68, 0.06);
+  padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
   display: flex;
   gap: 16rpx;
 }
 
-.action-buttons .btn {
+.action-btn {
   flex: 1;
-  padding: 12rpx 16rpx;
-  font-size: 26rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  border-radius: 12rpx;
-  transition: all 0.2s ease;
+  text-align: center;
+  border: none;
 }
 
-.action-buttons .btn:active {
-  transform: scale(0.98);
+.action-btn-primary {
+  background: linear-gradient(135deg, #66BB6A 0%, #81C784 100%);
+  color: #FFFFFF;
+}
+
+.action-btn-outline {
+  background: transparent;
+  color: #9E9E9E;
+  border: 2rpx solid #E0E0E0;
 }
 
 .loading {
