@@ -6,10 +6,7 @@ import java.util.List;
 
 public interface CategoryService {
     Long addCategory(Category category);
-    Category getById(Long id);
     List<Category> list(Integer status);
-    boolean updateCategory(Category category);
-    boolean deleteById(Long id);
+    void updateCategory(Category category);
+    void deleteById(Long id);
 }
-
-

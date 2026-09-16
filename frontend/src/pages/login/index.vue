@@ -50,11 +50,6 @@
         <text>确认登录</text>
       </button>
       
-      <!-- 游客入口 -->
-      <view v-if="!userInfo" class="guest-entry">
-        <text class="guest-btn" @click="onGuestLogin">暂不授权，先看看</text>
-      </view>
-      
       <!-- 加载提示 -->
       <view v-if="loading" class="loading-tip">
         <text>登录中...</text>
@@ -139,7 +134,10 @@ export default {
         console.log('登录成功:', res)
         
         // 3. 保存用户信息
-        userManager.saveUserInfo(res.user)
+        userManager.saveUserInfo({
+          ...res.user,
+          isAdmin: !!res.user.isAdmin
+        })
         if (res.token) {
           userManager.saveToken(res.token)
         }
@@ -163,23 +161,6 @@ export default {
       } finally {
         this.loading = false
       }
-    },
-    
-    // 游客登录（不获取微信信息）
-    onGuestLogin() {
-      // 创建一个游客用户
-      userManager.saveUserInfo({
-        openid: 'guest_' + Date.now(),
-        uuid: 'guest_' + Date.now(),
-        nickname: '游客',
-        avatarUrl: null,
-        role: 0
-      })
-      uni.showToast({
-        title: '欢迎来到家庭点餐',
-        icon: 'success'
-      })
-      this.goToIndex()
     },
     
     // 跳转到首页
@@ -374,15 +355,4 @@ export default {
   color: #999999;
 }
 
-/* 游客入口 */
-.guest-entry {
-  margin-top: 32rpx;
-  text-align: center;
-}
-
-.guest-btn {
-  font-size: 26rpx;
-  color: #999999;
-  text-decoration: underline;
-}
 </style>

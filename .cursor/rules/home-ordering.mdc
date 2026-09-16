@@ -1,0 +1,14 @@
+---
+description: 家庭点餐文档、配置与需求唯一源
+alwaysApply: true
+---
+
+# 家庭点餐维护规则
+
+- 系统描述只维护根目录 `README.md`。需求与开发规则只维护 `docs/REQUIREMENTS.md`。不要新增介绍、清单、更新日志、各端 README。
+- 改功能、权限、表结构、配置或启动方式时，必须同步更新上述两份文档。
+- 后端访问与运行参数只改 `backend/src/main/resources/application.properties`（密钥用环境变量）。前端 API 地址只改 `frontend/.env.development` / `frontend/.env.production` 的 `VITE_API_BASE_URL`。
+- 禁止在 Java / Vue / JS 中硬编码 Host、端口或 ngrok 域名。前端只能读取 `import.meta.env.VITE_API_BASE_URL`。
+- 数据库只维护 `backend/src/main/resources/db/init.sql`（空库）和 `upgrade.sql`（旧库保数据）。不要再加 dump 或一次性补丁文件。
+- 前端源码只在 `frontend/src/`。管理员权限唯一依据是 `family.admin_uuid`，不要用 `user.role` 做权威校验。
+- 不要做游客登录，不要恢复「老公确认」文案。

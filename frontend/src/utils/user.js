@@ -7,17 +7,9 @@ class UserManager {
     this.TOKEN_KEY = 'auth_token'
   }
 
-  /**
-   * 保存用户信息
-   */
   saveUserInfo(userInfo) {
     try {
-      // 确保 familyId 被保存
-      const infoToSave = {
-        ...userInfo,
-        familyId: userInfo.familyId
-      }
-      uni.setStorageSync(this.USER_KEY, infoToSave)
+      uni.setStorageSync(this.USER_KEY, { ...userInfo })
       return true
     } catch (e) {
       console.error('保存用户信息失败:', e)
@@ -25,9 +17,6 @@ class UserManager {
     }
   }
 
-  /**
-   * 获取用户信息
-   */
   getUserInfo() {
     try {
       return uni.getStorageSync(this.USER_KEY) || null
@@ -37,9 +26,6 @@ class UserManager {
     }
   }
 
-  /**
-   * 保存登录令牌
-   */
   saveToken(token) {
     try {
       uni.setStorageSync(this.TOKEN_KEY, token)
@@ -50,9 +36,6 @@ class UserManager {
     }
   }
 
-  /**
-   * 获取登录令牌
-   */
   getToken() {
     try {
       return uni.getStorageSync(this.TOKEN_KEY) || null
@@ -62,33 +45,21 @@ class UserManager {
     }
   }
 
-  /**
-   * 获取UUID
-   */
   getUuid() {
     const userInfo = this.getUserInfo()
     return userInfo ? userInfo.uuid : null
   }
 
-  /**
-   * 检查是否已登录
-   */
   isLoggedIn() {
-    const userInfo = this.getUserInfo()
-    return userInfo && userInfo.openid
+    return !!(this.getToken() && this.getUuid())
   }
 
-  /**
-   * 检查是否为管理员
-   */
+  /** 是否家庭管理员：以服务端下发的 isAdmin 为准，不以 role 为权威 */
   isAdmin() {
     const userInfo = this.getUserInfo()
-    return userInfo && userInfo.role === 1
+    return !!(userInfo && userInfo.isAdmin)
   }
 
-  /**
-   * 清除用户信息
-   */
   clearUserInfo() {
     try {
       uni.removeStorageSync(this.USER_KEY)

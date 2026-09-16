@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 
 /**
  * 家庭服务实现类
@@ -35,24 +34,29 @@ public class FamilyServiceImpl implements FamilyService {
     @Override
     @Transactional
     public FamilyDTO createFamily(String uuid, String name) {
-        log.info("创建家庭: uuid={}, name={}", uuid, name);
+        String familyName = normalizeFamilyName(name);
+        log.info("创建家庭: uuid={}, name={}", uuid, familyName);
+        // 防止旧前端把 uuid 当成 name 传入
+        if (familyName.equals(uuid)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID.getCode(), "家庭名称无效，请重新输入");
+        }
 
-        // 检查用户是否已有家庭
         User user = getUserByUuid(uuid);
         if (user.getFamilyId() != null) {
             throw new BusinessException(ErrorCode.FAMILY_ALREADY_JOINED);
         }
 
-        // 创建家庭
         Family family = new Family();
-        family.setName(name);
+        family.setName(familyName);
         family.setInviteCode(generateInviteCode());
         family.setAdminUuid(uuid);
         familyMapper.insert(family);
 
-        // 更新用户的家庭ID，并将该用户设为家庭管理员(role=1)
+        // 再查一遍，避免返回对象字段异常
+        family = familyMapper.selectById(family.getId());
+
         user.setFamilyId(family.getId());
-        user.setRole(1);  // 创建者自动成为家庭管理员
+        user.setRole(1);
         userMapper.updateById(user);
 
         return convertToDTO(family, uuid);
@@ -62,6 +66,9 @@ public class FamilyServiceImpl implements FamilyService {
     @Transactional
     public FamilyDTO joinFamily(String uuid, String inviteCode) {
         log.info("加入家庭: uuid={}, inviteCode={}", uuid, inviteCode);
+        if (inviteCode == null || inviteCode.isBlank()) {
+            throw new BusinessException(ErrorCode.FAMILY_INVITE_CODE_INVALID);
+        }
 
         // 检查用户是否已有家庭
         User user = getUserByUuid(uuid);
@@ -79,8 +86,9 @@ public class FamilyServiceImpl implements FamilyService {
             throw new BusinessException(ErrorCode.FAMILY_INVITE_CODE_INVALID);
         }
 
-        // 更新用户的家庭ID
+        // 更新用户的家庭ID（成员 role 保持 0，权限以 admin_uuid 为准）
         user.setFamilyId(family.getId());
+        user.setRole(0);
         userMapper.updateById(user);
 
         return convertToDTO(family, uuid);
@@ -149,6 +157,29 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     @Override
+    @Transactional
+    public FamilyDTO updateFamilyName(String uuid, String name) {
+        String familyName = normalizeFamilyName(name);
+        User user = getUserByUuid(uuid);
+        if (user.getFamilyId() == null) {
+            throw new BusinessException(ErrorCode.FAMILY_NOT_FOUND);
+        }
+        Family family = familyMapper.selectById(user.getFamilyId());
+        if (family == null) {
+            throw new BusinessException(ErrorCode.FAMILY_NOT_FOUND);
+        }
+        if (!uuid.equals(family.getAdminUuid())) {
+            throw new BusinessException(ErrorCode.FAMILY_NOT_ADMIN);
+        }
+        if (familyName.equals(uuid)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID.getCode(), "家庭名称无效，请重新输入");
+        }
+        family.setName(familyName);
+        familyMapper.updateById(family);
+        return convertToDTO(familyMapper.selectById(family.getId()), uuid);
+    }
+
+    @Override
     public boolean isFamilyAdmin(String uuid) {
         User user = getUserByUuid(uuid);
         if (user.getFamilyId() == null) {
@@ -160,10 +191,14 @@ public class FamilyServiceImpl implements FamilyService {
     }
 
     private User getUserByUuid(String uuid) {
-        return userMapper.selectOne(
+        User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>()
                         .eq(User::getUuid, uuid)
         );
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        return user;
     }
 
     private FamilyDTO convertToDTO(Family family, String currentUuid) {
@@ -192,6 +227,17 @@ public class FamilyServiceImpl implements FamilyService {
         dto.setMembers(memberDTOs);
 
         return dto;
+    }
+
+    private String normalizeFamilyName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID.getCode(), "请输入家庭名称");
+        }
+        String trimmed = name.trim();
+        if (trimmed.length() > 20) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID.getCode(), "家庭名称不能超过20个字");
+        }
+        return trimmed;
     }
 
     private String generateInviteCode() {

@@ -155,8 +155,7 @@
 </template>
 
 <script>
-import { userApi } from '@/utils/api.js'
-import familyApi from '@/utils/familyApi.js'
+import { userApi, familyApi, fileApi, authApi } from '@/utils/api.js'
 import userManager from '@/utils/user.js'
 
 export default {
@@ -193,7 +192,7 @@ export default {
           return
         }
 
-        const info = await familyApi.getFamilyInfo(uuid)
+        const info = await familyApi.getFamilyInfo()
         if (!info) {
           // 用户没有家庭，跳转到家庭页
           uni.redirectTo({ url: '/pages/family/index' })
@@ -223,14 +222,15 @@ export default {
         const uuid = userManager.getUuid()
         if (!uuid) return
 
-        const userData = await userApi.getInfo(uuid)
+        const userData = await userApi.getInfo()
         this.userInfo = userData
-        this.isAdmin = userData.role === 1 || false
+        this.isAdmin = !!userData.isAdmin
 
         // 更新本地存储
         userManager.saveUserInfo({
           ...userManager.getUserInfo(),
-          ...userData
+          ...userData,
+          isAdmin: !!userData.isAdmin
         })
       } catch (e) {
         console.error('加载用户信息失败', e)
@@ -243,7 +243,7 @@ export default {
         const uuid = userManager.getUuid()
         if (!uuid) return
 
-        const info = await familyApi.getFamilyInfo(uuid)
+        const info = await familyApi.getFamilyInfo()
         if (info) {
           this.familyInfo = info
           this.isAdmin = info.isAdmin || false
@@ -298,23 +298,7 @@ export default {
           const tempPath = res.tempFilePaths[0]
           try {
             uni.showLoading({ title: '上传中...' })
-            const imageUrl = await new Promise((resolve, reject) => {
-              uni.uploadFile({
-                url: 'https://unperverted-neida-noncounterfeit.ngrok-free.dev/api/file/upload',
-                filePath: tempPath,
-                name: 'file',
-                header: { 'ngrok-skip-browser-warning': 'true' },
-                success: (res) => {
-                  const data = JSON.parse(res.data)
-                  if (data.code === 200) {
-                    resolve(data.data)
-                  } else {
-                    reject(new Error(data.message))
-                  }
-                },
-                fail: reject
-              })
-            })
+            const imageUrl = await fileApi.upload(tempPath)
             this.updateAvatar(imageUrl)
           } catch (e) {
             uni.showToast({ title: '上传失败', icon: 'none' })
@@ -410,8 +394,13 @@ export default {
       uni.showModal({
         title: '提示',
         content: '确定要退出登录吗？',
-        success: (res) => {
+        success: async (res) => {
           if (res.confirm) {
+            try {
+              await authApi.logout()
+            } catch (e) {
+              // 服务端无会话，失败也继续清本地
+            }
             userManager.clearUserInfo()
             uni.reLaunch({
               url: '/pages/login/index'

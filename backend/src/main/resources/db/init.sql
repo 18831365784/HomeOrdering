@@ -1,81 +1,95 @@
--- 家庭点餐系统数据库初始化脚本
+-- 家庭点餐：空库全量初始化（禁止 DROP，无示例业务数据）
+-- 新电脑 / 空 MySQL 只执行本文件。已有数据的库请改用 upgrade.sql
 
--- 创建数据库
 CREATE DATABASE IF NOT EXISTS `home_ordering` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE `home_ordering`;
 
--- 菜品分类表
-DROP TABLE IF EXISTS `category`;
-CREATE TABLE `category` (
+CREATE TABLE IF NOT EXISTS `family` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` VARCHAR(50) NOT NULL COMMENT '家庭名称',
+  `invite_code` VARCHAR(6) NOT NULL COMMENT '邀请码',
+  `admin_uuid` VARCHAR(100) NOT NULL COMMENT '管理员UUID（家庭创建者）',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_invite_code` (`invite_code`),
+  INDEX `idx_admin_uuid` (`admin_uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='家庭表';
+
+CREATE TABLE IF NOT EXISTS `user` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `openid` VARCHAR(100) NOT NULL COMMENT '微信openid',
+  `uuid` VARCHAR(100) NOT NULL COMMENT '用户唯一标识',
+  `nickname` VARCHAR(100) DEFAULT NULL COMMENT '昵称',
+  `avatar_url` VARCHAR(500) DEFAULT NULL COMMENT '头像地址',
+  `phone` VARCHAR(20) DEFAULT NULL COMMENT '手机号',
+  `address` VARCHAR(200) DEFAULT NULL COMMENT '地址',
+  `role` TINYINT NOT NULL DEFAULT 0 COMMENT '角色缓存: 0-成员 1-家庭创建者，权限以 family.admin_uuid 为准',
+  `balance` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '余额',
+  `family_id` BIGINT DEFAULT NULL COMMENT '所属家庭ID',
+  `last_login_time` DATETIME DEFAULT NULL COMMENT '最后登录时间',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_openid` (`openid`),
+  UNIQUE KEY `uk_uuid` (`uuid`),
+  INDEX `idx_family_id` (`family_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
+
+CREATE TABLE IF NOT EXISTS `category` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `name` VARCHAR(50) NOT NULL COMMENT '分类名称',
   `icon_url` VARCHAR(500) DEFAULT NULL COMMENT '图标',
   `sort` INT NOT NULL DEFAULT 0 COMMENT '排序，越小越靠前',
   `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0-停用 1-启用',
+  `family_id` BIGINT DEFAULT NULL COMMENT '所属家庭ID',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_name` (`name`),
-  INDEX `idx_status_sort` (`status`, `sort`)
+  UNIQUE KEY `uk_family_name` (`family_id`, `name`),
+  INDEX `idx_family_status_sort` (`family_id`, `status`, `sort`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜品分类表';
 
--- 用户表
-DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `openid` VARCHAR(100) NOT NULL COMMENT '微信openid',76895
-  `uuid` VARCHAR(100) DEFAULT NULL COMMENT '用户唯一标识',
-  `nickname` VARCHAR(100) DEFAULT NULL COMMENT '昵称',
-  `avatar_url` VARCHAR(500) DEFAULT NULL COMMENT '头像地址',
-  `role` TINYINT NOT NULL DEFAULT 0 COMMENT '角色: 0-普通用户 1-管理员',
-  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_openid` (`openid`),
-  INDEX `idx_uuid` (`uuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
-
--- 菜品表
-DROP TABLE IF EXISTS `dish`;
-CREATE TABLE `dish` (
+CREATE TABLE IF NOT EXISTS `dish` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `name` VARCHAR(100) NOT NULL COMMENT '菜品名称',
   `image_url` VARCHAR(500) DEFAULT NULL COMMENT '菜品图片URL',
   `description` VARCHAR(500) DEFAULT NULL COMMENT '菜品简介',
   `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '菜品价格',
-  `category` VARCHAR(50) DEFAULT NULL COMMENT '菜品分类: 肉类、蔬菜、主食、凉菜、汤',
+  `category` VARCHAR(50) DEFAULT NULL COMMENT '分类名称',
   `order_count` INT NOT NULL DEFAULT 0 COMMENT '点单次数',
   `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0-停用 1-启用',
   `extensions` TEXT DEFAULT NULL COMMENT '扩展选项配置(JSON)',
   `sort` INT NOT NULL DEFAULT 0 COMMENT '排序，越小越靠前',
+  `family_id` BIGINT DEFAULT NULL COMMENT '所属家庭ID',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  INDEX `idx_status` (`status`),
-  INDEX `idx_order_count` (`order_count` DESC),
-  INDEX `idx_sort` (`sort` ASC)
+  INDEX `idx_family_status_sort` (`family_id`, `status`, `sort`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜品表';
 
--- 订单表
-DROP TABLE IF EXISTS `order`;
-CREATE TABLE `order` (
+CREATE TABLE IF NOT EXISTS `order` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `order_no` VARCHAR(50) NOT NULL COMMENT '订单号',
   `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '订单总金额',
-  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态: 0-待确认 1-已确认 2-已完成',
+  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态: -1已取消 0待接单 1制作中 2已完成',
   `remark` VARCHAR(500) DEFAULT NULL COMMENT '备注',
+  `customer_uuid` VARCHAR(100) DEFAULT NULL COMMENT '下单人UUID',
+  `customer_name` VARCHAR(50) DEFAULT NULL COMMENT '下单人昵称',
+  `maker_uuid` VARCHAR(100) DEFAULT NULL COMMENT '制作人UUID',
+  `maker_name` VARCHAR(50) DEFAULT NULL COMMENT '制作人昵称',
+  `family_id` BIGINT DEFAULT NULL COMMENT '家庭ID',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_no` (`order_no`),
-  INDEX `idx_status` (`status`),
-  INDEX `idx_create_time` (`create_time` DESC)
+  INDEX `idx_family_status` (`family_id`, `status`),
+  INDEX `idx_customer_uuid` (`customer_uuid`),
+  INDEX `idx_maker_uuid` (`maker_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
 
--- 订单详情表
-DROP TABLE IF EXISTS `order_detail`;
-CREATE TABLE `order_detail` (
+CREATE TABLE IF NOT EXISTS `order_detail` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `order_id` BIGINT NOT NULL COMMENT '订单ID',
   `dish_id` BIGINT NOT NULL COMMENT '菜品ID',
@@ -88,18 +102,3 @@ CREATE TABLE `order_detail` (
   INDEX `idx_order_id` (`order_id`),
   INDEX `idx_dish_id` (`dish_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单详情表';
-
--- 插入示例菜品数据
-INSERT INTO `dish` (`name`, `image_url`, `description`, `price`, `category`, `order_count`, `status`) VALUES
-('宫保鸡丁', NULL, '经典川菜，鸡肉鲜嫩，花生酥脆', 38.00, '肉类', 0, 1),
-('麻婆豆腐', NULL, '麻辣鲜香，豆腐嫩滑入味', 28.00, '蔬菜', 0, 1),
-('红烧肉', NULL, '色泽红亮，肥而不腻', 48.00, '肉类', 0, 1),
-('清蒸鹈鱼', NULL, '鱼肉鲜嫩，原汁原味', 58.00, '肉类', 0, 1),
-('番茄炒蛋', NULL, '家常美味，酸甜可口', 18.00, '蔬菜', 0, 1),
-('手擕包菜', NULL, '清脆爽口，蒜香浓郁', 22.00, '蔬菜', 0, 1),
-('米饭', NULL, '香糯米饭', 3.00, '主食', 0, 1),
-('凉拌黄瓜', NULL, '清爽解腻', 15.00, '凉菜', 0, 1),
-('紫菜蛋花汤', NULL, '清淡鲜美', 12.00, '汤', 0, 1);
-
--- 数据库初始化完成
-SELECT '数据库初始化完成！' AS message;

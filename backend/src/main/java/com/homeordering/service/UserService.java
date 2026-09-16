@@ -1,20 +1,24 @@
 package com.homeordering.service;
 
-import com.homeordering.dto.WxLoginDTO;
-import com.homeordering.vo.UserVO;
+import com.homeordering.dto.request.LoginDTO;
+import com.homeordering.dto.request.UpdateUserDTO;
+import com.homeordering.dto.response.AuthDTO;
+import com.homeordering.dto.response.UserDTO;
+import com.homeordering.entity.User;
 
-/**
- * 用户Service接口
- */
+import java.math.BigDecimal;
+
 public interface UserService {
-    
-    /**
-     * 微信登录
-     */
-    UserVO wxLogin(WxLoginDTO wxLoginDTO);
-    
-    /**
-     * 根据UUID检查是否为管理员
-     */
-    boolean isAdmin(String uuid);
+
+    AuthDTO login(LoginDTO loginDTO);
+
+    UserDTO getCurrentUser();
+
+    UserDTO getInfo(String uuid);
+
+    UserDTO updateUser(UpdateUserDTO updateDTO);
+
+    UserDTO updateBalance(String operatorUuid, String targetUuid, BigDecimal balance);
+
+    UserDTO toDto(User user);
 }

@@ -1,41 +1,19 @@
 package com.homeordering.dto;
 
 import lombok.Data;
+
 import java.io.Serializable;
 import java.util.List;
 
 /**
- * 订单数据传输对象
+ * 创建订单请求。下单人/家庭以登录态为准，客户端不可伪造。
  */
 @Data
 public class OrderDTO implements Serializable {
 
     private String remark;
-    private Integer status;
     private List<OrderItemDTO> items;
 
-    /**
-     * 下单人UUID
-     */
-    private String customerUuid;
-
-    /**
-     * 下单客户昵称
-     */
-    private String customerName;
-
-    /**
-     * 制作者UUID
-     */
+    /** 制作人 UUID（须为同家庭成员） */
     private String makerUuid;
-
-    /**
-     * 制作者昵称
-     */
-    private String makerName;
-
-    /**
-     * 家庭ID
-     */
-    private Long familyId;
 }

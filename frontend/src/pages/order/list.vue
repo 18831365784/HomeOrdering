@@ -144,9 +144,9 @@ export default {
         const uuid = userManager.getUuid()
 
         if (this.currentTab === 'my') {
-          this.myOrders = await orderApi.getMyOrders(uuid)
+          this.myOrders = await orderApi.getMyOrders()
         } else {
-          this.makingOrders = await orderApi.getMyMakingOrders(uuid)
+          this.makingOrders = await orderApi.getMyMakingOrders()
         }
       } catch (e) {
         console.error('加载订单失败', e)
@@ -180,7 +180,7 @@ export default {
 
     async handleAccept(order) {
       try {
-        await orderApi.acceptOrder(order.id, userManager.getUuid())
+        await orderApi.acceptOrder(order.id)
         uni.showToast({ title: '接单成功', icon: 'success' })
         this.loadOrders()
       } catch (e) {
@@ -190,7 +190,7 @@ export default {
 
     async handleFinish(order) {
       try {
-        await orderApi.finishOrder(order.id, userManager.getUuid())
+        await orderApi.finishOrder(order.id)
         uni.showToast({ title: '订单完成', icon: 'success' })
         this.loadOrders()
       } catch (e) {
@@ -205,7 +205,7 @@ export default {
         success: async (res) => {
           if (res.confirm) {
             try {
-              await orderApi.cancelOrder(order.id, userManager.getUuid())
+              await orderApi.cancelOrder(order.id)
               uni.showToast({ title: '订单已取消', icon: 'success' })
               this.loadOrders()
             } catch (e) {

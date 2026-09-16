@@ -7,6 +7,8 @@
 </template>
 
 <script>
+import { getApiBaseUrl } from '@/utils/api.js'
+
 export default {
   name: 'SafeImage',
   props: {
@@ -33,8 +35,9 @@ export default {
         this.displaySrc = ''
         return
       }
-      // 仅对 ngrok-free 域名使用带 header 的下载再显示
-      if (url.includes('ngrok-free.dev')) {
+      const base = getApiBaseUrl() || ''
+      const needNgrokHeader = base.includes('ngrok') || url.includes('ngrok')
+      if (needNgrokHeader) {
         uni.downloadFile({
           url,
           header: { 'ngrok-skip-browser-warning': 'true' },
@@ -59,5 +62,3 @@ export default {
 
 <style scoped>
 </style>
-
-

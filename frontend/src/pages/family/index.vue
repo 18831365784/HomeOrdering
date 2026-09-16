@@ -19,7 +19,8 @@
           </view>
         </view>
         <view class="family-actions">
-          <button v-if="isAdmin" class="btn btn-outline" @click="regenerateCode">换一换</button>
+          <button v-if="isAdmin" class="btn btn-outline" @tap.stop="onEditName">修改名称</button>
+          <button v-if="isAdmin" class="btn btn-outline" @tap.stop="regenerateCode">换邀请码</button>
         </view>
       </view>
 
@@ -92,6 +93,25 @@
       </view>
     </view>
 
+    <!-- 修改家庭名称弹窗 -->
+    <view v-if="showRenameModal" class="modal-mask" @click="showRenameModal = false">
+      <view class="modal-card" @click.stop>
+        <view class="modal-title">修改家庭名称</view>
+        <view class="modal-body">
+          <input
+            class="input"
+            v-model="renameName"
+            placeholder="请输入新的家庭名称"
+            maxlength="20"
+          />
+        </view>
+        <view class="modal-actions">
+          <button class="btn btn-ghost" @tap.stop="showRenameModal = false">取消</button>
+          <button class="btn btn-coral" @tap.stop="handleRename">保存</button>
+        </view>
+      </view>
+    </view>
+
     <!-- 余额充值弹窗 -->
     <view v-if="showBalanceModal" class="modal-mask" @click="showBalanceModal = false">
       <view class="modal-card" @click.stop>
@@ -114,8 +134,7 @@
 </template>
 
 <script>
-import familyApi from '@/utils/familyApi.js'
-import { userApi } from '@/utils/api.js'
+import { familyApi, userApi } from '@/utils/api.js'
 import userManager from '@/utils/user.js'
 
 export default {
@@ -128,8 +147,10 @@ export default {
       showCreateModal: false,
       showJoinModal: false,
       showBalanceModal: false,
+      showRenameModal: false,
       createName: '',
       joinCode: '',
+      renameName: '',
       selectedMember: null,
       tempBalance: ''
     }
@@ -149,28 +170,14 @@ export default {
         const uuid = userManager.getUuid()
         if (!uuid) return
 
-        const info = await familyApi.getFamilyInfo(uuid)
+        const info = await familyApi.getFamilyInfo()
         if (info) {
           this.hasFamily = true
           this.familyInfo = {
             name: info.name,
             inviteCode: info.inviteCode
           }
-          // 获取每个成员的用户信息以获取余额
-          const membersWithBalance = await Promise.all(
-            (info.members || []).map(async (member) => {
-              try {
-                const userInfo = await userApi.getInfo(member.uuid)
-                return {
-                  ...member,
-                  balance: userInfo.balance || 0
-                }
-              } catch (e) {
-                return { ...member, balance: 0 }
-              }
-            })
-          )
-          this.members = membersWithBalance
+          this.members = info.members || []
           this.isAdmin = info.isAdmin || false
         } else {
           this.hasFamily = false
@@ -182,26 +189,67 @@ export default {
     },
 
     async handleCreate() {
-      if (!this.createName.trim()) {
+      const name = (this.createName || '').trim()
+      if (!name) {
         uni.showToast({ title: '请输入家庭名称', icon: 'none' })
         return
       }
 
       try {
         uni.showLoading({ title: '创建中...' })
-        const uuid = userManager.getUuid()
-        await familyApi.createFamily(uuid, this.createName.trim())
+        const family = await familyApi.createFamily(name)
         uni.hideLoading()
         this.showCreateModal = false
         this.createName = ''
+        this.hasFamily = true
+        this.familyInfo = {
+          name: family.name,
+          inviteCode: family.inviteCode
+        }
+        this.members = family.members || []
+        this.isAdmin = !!family.isAdmin
+        userManager.saveUserInfo({
+          ...userManager.getUserInfo(),
+          familyId: family.id,
+          familyName: family.name,
+          isAdmin: family.isAdmin
+        })
         uni.showToast({ title: '创建成功', icon: 'success' })
-
-        setTimeout(() => {
-          uni.switchTab({ url: '/pages/user/index' })
-        }, 1500)
       } catch (e) {
         uni.hideLoading()
-        uni.showToast({ title: e.message || '创建失败', icon: 'none' })
+        uni.showToast({ title: (e && e.message) || '创建失败', icon: 'none' })
+      }
+    },
+
+    onEditName() {
+      if (!this.isAdmin) {
+        uni.showToast({ title: '仅管理员可修改', icon: 'none' })
+        return
+      }
+      this.renameName = this.familyInfo.name || ''
+      this.showRenameModal = true
+    },
+
+    async handleRename() {
+      const name = (this.renameName || '').trim()
+      if (!name) {
+        uni.showToast({ title: '请输入家庭名称', icon: 'none' })
+        return
+      }
+      try {
+        uni.showLoading({ title: '保存中...' })
+        const family = await familyApi.updateFamilyName(name)
+        uni.hideLoading()
+        this.showRenameModal = false
+        this.familyInfo.name = family.name
+        userManager.saveUserInfo({
+          ...userManager.getUserInfo(),
+          familyName: family.name
+        })
+        uni.showToast({ title: '已修改', icon: 'success' })
+      } catch (e) {
+        uni.hideLoading()
+        uni.showToast({ title: (e && e.message) || '修改失败', icon: 'none' })
       }
     },
 
@@ -213,8 +261,7 @@ export default {
 
       try {
         uni.showLoading({ title: '加入中...' })
-        const uuid = userManager.getUuid()
-        await familyApi.joinFamily(uuid, this.joinCode.trim().toUpperCase())
+        await familyApi.joinFamily(this.joinCode.trim().toUpperCase())
         uni.hideLoading()
         this.showJoinModal = false
         this.joinCode = ''
@@ -232,8 +279,7 @@ export default {
     async regenerateCode() {
       try {
         uni.showLoading({ title: '生成中...' })
-        const uuid = userManager.getUuid()
-        const newCode = await familyApi.regenerateInviteCode(uuid)
+        const newCode = await familyApi.regenerateInviteCode()
         this.familyInfo.inviteCode = newCode
         uni.hideLoading()
         uni.showToast({ title: '已生成新邀请码', icon: 'success' })
@@ -339,16 +385,24 @@ export default {
   font-size: 36rpx;
   font-weight: bold;
   color: #212121;
+  display: block;
+  margin-bottom: 16rpx;
 }
 
 .family-actions {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-left: 16rpx;
 }
 
 .family-actions .btn {
-  padding: 10rpx 28rpx;
+  padding: 10rpx 24rpx;
   font-size: 24rpx;
   border-radius: 30rpx;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .invite-code-box {

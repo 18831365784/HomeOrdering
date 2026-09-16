@@ -1,82 +1,98 @@
-// API基础配置
-const BASE_URL = 'https://unperverted-neida-noncounterfeit.ngrok-free.dev/api'
+/**
+ * 前端唯一 API 配置源：VITE_API_BASE_URL（见 frontend/.env.development / .env.production）
+ */
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
-// 请求封装
+function buildHeaders(extra = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...extra
+  }
+  try {
+    const token = uni.getStorageSync('auth_token')
+    if (token) {
+      headers.Authorization = token
+    }
+  } catch (e) {
+    // ignore
+  }
+  if (typeof BASE_URL === 'string' && BASE_URL.includes('ngrok')) {
+    headers['ngrok-skip-browser-warning'] = 'true'
+  }
+  return headers
+}
+
+function handleUnauthorized() {
+  try {
+    uni.removeStorageSync('auth_token')
+    uni.removeStorageSync('user_info')
+  } catch (e) {
+    // ignore
+  }
+  uni.showToast({ title: '请重新登录', icon: 'none' })
+  setTimeout(() => {
+    uni.reLaunch({ url: '/pages/login/index' })
+  }, 400)
+}
+
 const request = (url, options = {}) => {
   return new Promise((resolve, reject) => {
+    const method = (options.method || 'GET').toUpperCase()
+    let data = options.data || {}
+    // 小程序 POST/PUT JSON 体显式序列化，避免字段被错绑
+    if ((method === 'POST' || method === 'PUT' || method === 'PATCH') && data && typeof data === 'object') {
+      data = JSON.stringify(data)
+    }
     uni.request({
       url: BASE_URL + url,
-      method: options.method || 'GET',
-      data: options.data || {},
-      header: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',  // 跳过 ngrok 浏览器警告页
-        ...options.header
-      },
+      method,
+      data,
+      header: buildHeaders(options.header || {}),
       success: (res) => {
-        if (res.data.code === 200) {
+        if (res.statusCode === 401) {
+          handleUnauthorized()
+          reject(res.data || { message: '未登录' })
+          return
+        }
+        if (res.data && res.data.code === 200) {
           resolve(res.data.data)
         } else {
           uni.showToast({
-            title: res.data.message || '请求失败',
+            title: (res.data && res.data.message) || '请求失败',
             icon: 'none'
           })
           reject(res.data)
         }
       },
       fail: (err) => {
-        uni.showToast({
-          title: '网络请求失败',
-          icon: 'none'
-        })
+        uni.showToast({ title: '网络请求失败', icon: 'none' })
         reject(err)
       }
     })
   })
 }
 
-// 文件上传封装
-const uploadFile = (filePath) => {
+const uploadFile = (filePath, path = '/file/upload') => {
   return new Promise((resolve, reject) => {
+    const header = {}
+    try {
+      const token = uni.getStorageSync('auth_token')
+      if (token) header.Authorization = token
+    } catch (e) {}
+    if (typeof BASE_URL === 'string' && BASE_URL.includes('ngrok')) {
+      header['ngrok-skip-browser-warning'] = 'true'
+    }
     uni.uploadFile({
-      url: BASE_URL + '/file/upload',
-      filePath: filePath,
+      url: BASE_URL + path,
+      filePath,
       name: 'file',
-      header: {
-        'ngrok-skip-browser-warning': 'true'  // 跳过 ngrok 浏览器警告页
-      },
+      header,
       success: (res) => {
-        const data = JSON.parse(res.data)
-        if (data.code === 200) {
-          resolve(data.data)
-        } else {
-          uni.showToast({
-            title: data.message || '上传失败',
-            icon: 'none'
-          })
-          reject(data)
+        if (res.statusCode === 401) {
+          handleUnauthorized()
+          reject({ message: '未登录' })
+          return
         }
-      },
-      fail: (err) => {
-        uni.showToast({
-          title: '上传失败',
-          icon: 'none'
-        })
-        reject(err)
-      }
-    })
-  })
-}
-
-// 上传分类图标到 uploads/icon
-const uploadIcon = (filePath) => {
-  return new Promise((resolve, reject) => {
-    uni.uploadFile({
-      url: BASE_URL + '/file/upload/icon',
-      filePath: filePath,
-      name: 'file',
-      header: { 'ngrok-skip-browser-warning': 'true' },
-      success: (res) => {
         const data = JSON.parse(res.data)
         if (data.code === 200) {
           resolve(data.data)
@@ -93,163 +109,73 @@ const uploadIcon = (filePath) => {
   })
 }
 
-// 菜品API
 export const dishApi = {
-  // 获取菜品列表（需要传uuid获取当前家庭）
-  getList(status, uuid) {
+  getList(status) {
     const data = {}
-    if (uuid) data.uuid = uuid
     if (status !== null && status !== undefined) data.status = status
-    return request('/dish/list', {
-      method: 'GET',
-      data
-    })
+    return request('/dish/list', { method: 'GET', data })
   },
-
-  // 获取菜品详情
   getDetail(id) {
     return request(`/dish/${id}`)
   },
-
-  // 添加菜品
-  add(data, uuid) {
-    return request(`/dish?uuid=${encodeURIComponent(uuid)}`, {
-      method: 'POST',
-      data
-    })
+  add(data) {
+    return request('/dish', { method: 'POST', data })
   },
-
-  // 更新菜品
-  update(data, uuid) {
-    return request(`/dish?uuid=${encodeURIComponent(uuid)}`, {
-      method: 'PUT',
-      data
-    })
+  update(data) {
+    return request('/dish', { method: 'PUT', data })
   },
-
-  // 删除菜品
-  delete(id, uuid) {
-    return request(`/dish/${id}?uuid=${encodeURIComponent(uuid)}`, {
-      method: 'DELETE'
-    })
+  delete(id) {
+    return request(`/dish/${id}`, { method: 'DELETE' })
   }
 }
 
-// 订单API
 export const orderApi = {
-  // 创建订单
   create(data) {
-    return request('/order', {
-      method: 'POST',
-      data
-    })
+    return request('/order', { method: 'POST', data })
   },
-
-  // 获取我的订单（我下的单）
-  getMyOrders(uuid) {
-    return request('/order/list/my', {
-      method: 'GET',
-      data: { uuid }
-    })
+  getMyOrders() {
+    return request('/order/list/my', { method: 'GET' })
   },
-
-  // 获取我的制作（我作为制作者的订单）
-  getMyMakingOrders(uuid) {
-    return request('/order/list/making', {
-      method: 'GET',
-      data: { uuid }
-    })
+  getMyMakingOrders() {
+    return request('/order/list/making', { method: 'GET' })
   },
-
-  // 获取订单列表（全部）
   getList(status) {
-    const params = {}
-    if (status !== null && status !== undefined) {
-      params.status = status
-    }
-    return request('/order/list', {
-      method: 'GET',
-      data: params
-    })
+    const data = {}
+    if (status !== null && status !== undefined) data.status = status
+    return request('/order/list', { method: 'GET', data })
   },
-
-  // 获取订单详情
   getDetail(id) {
     return request(`/order/${id}`)
   },
-
-  // 制作者接单
-  acceptOrder(id, makerUuid) {
-    return request(`/order/${id}/accept?makerUuid=${encodeURIComponent(makerUuid)}`, {
-      method: 'PUT'
-    })
+  acceptOrder(id) {
+    return request(`/order/${id}/accept`, { method: 'PUT' })
   },
-
-  // 制作者完成订单
-  finishOrder(id, makerUuid) {
-    return request(`/order/${id}/finish?makerUuid=${encodeURIComponent(makerUuid)}`, {
-      method: 'PUT'
-    })
+  finishOrder(id) {
+    return request(`/order/${id}/finish`, { method: 'PUT' })
   },
-
-  // 取消订单
-  cancelOrder(id, customerUuid) {
-    return request(`/order/${id}/cancel?customerUuid=${encodeURIComponent(customerUuid)}`, {
-      method: 'PUT'
-    })
-  },
-
-  // 更新订单状态
-  updateStatus(id, status) {
-    return request(`/order/${id}/status`, {
-      method: 'PUT',
-      data: { status }
-    })
-  },
-
-  // 删除订单
-  delete(id) {
-    return request(`/order/${id}`, {
-      method: 'DELETE'
-    })
+  cancelOrder(id) {
+    return request(`/order/${id}/cancel`, { method: 'PUT' })
   }
 }
 
-// 文件API
 export const fileApi = {
-  // 上传文件
   upload(filePath) {
-    return uploadFile(filePath)
+    return uploadFile(filePath, '/file/upload')
   },
   uploadIcon(filePath) {
-    return uploadIcon(filePath)
+    return uploadFile(filePath, '/file/upload/icon')
   }
 }
 
-// 用户API
 export const userApi = {
-  // 获取用户信息
   getInfo(uuid) {
-    return request('/user/info', {
-      method: 'GET',
-      data: { uuid }
-    })
+    const data = {}
+    if (uuid) data.uuid = uuid
+    return request('/user/info', { method: 'GET', data })
   },
-  // 检查是否为管理员
-  checkAdmin(uuid) {
-    return request('/user/checkAdmin', {
-      method: 'GET',
-      data: { uuid }
-    })
-  },
-  // 更新个人资料
   updateProfile(data) {
-    return request('/user/profile', {
-      method: 'PUT',
-      data
-    })
+    return request('/user/profile', { method: 'PUT', data })
   },
-  // 更新余额（管理员）
   updateBalance(uuid, balance) {
     return request('/user/balance', {
       method: 'PUT',
@@ -258,55 +184,71 @@ export const userApi = {
   }
 }
 
-// 认证API
 export const authApi = {
-  // 微信登录
   wxLogin(data) {
-    return request('/auth/login', {
-      method: 'POST',
-      data
-    })
+    return request('/auth/login', { method: 'POST', data })
   },
-
-  // 获取当前用户
   getCurrentUser() {
-    return request('/auth/me', {
-      method: 'GET'
-    })
+    return request('/auth/me', { method: 'GET' })
   },
-
-  // 退出登录
   logout() {
-    return request('/auth/logout', {
-      method: 'POST'
-    })
+    return request('/auth/logout', { method: 'POST' })
   }
 }
 
-// 分类API
 export const categoryApi = {
-  // 获取分类列表（需要传uuid获取当前家庭）
-  getList(status, uuid) {
-    const params = {}
-    if (uuid) params.uuid = uuid
-    if (status !== null && status !== undefined) params.status = status
-    return request('/category/list', {
-      method: 'GET',
-      data: params
-    })
+  getList(status) {
+    const data = {}
+    if (status !== null && status !== undefined) data.status = status
+    return request('/category/list', { method: 'GET', data })
   },
-  // 新增/更新/删除（后台维护时可用）
-  add(data, uuid) { return request(`/category?uuid=${encodeURIComponent(uuid)}`, { method: 'POST', data }) },
-  update(data, uuid) { return request(`/category?uuid=${encodeURIComponent(uuid)}`, { method: 'PUT', data }) },
-  delete(id, uuid) { return request(`/category/${id}?uuid=${encodeURIComponent(uuid)}`, { method: 'DELETE' }) }
+  add(data) {
+    return request('/category', { method: 'POST', data })
+  },
+  update(data) {
+    return request('/category', { method: 'PUT', data })
+  },
+  delete(id) {
+    return request(`/category/${id}`, { method: 'DELETE' })
+  }
+}
+
+export const familyApi = {
+  createFamily(name) {
+    return request('/family', { method: 'POST', data: { name } })
+  },
+  joinFamily(inviteCode) {
+    return request('/family/join', { method: 'POST', data: { inviteCode } })
+  },
+  getFamilyInfo() {
+    return request('/family/info', { method: 'GET' })
+  },
+  getFamilyMembers() {
+    return request('/family/members', { method: 'GET' })
+  },
+  regenerateInviteCode() {
+    return request('/family/regenerate-code', { method: 'POST' })
+  },
+  updateFamilyName(name) {
+    return request('/family/name', { method: 'PUT', data: { name } })
+  },
+  isFamilyAdmin() {
+    return request('/family/is-admin', { method: 'GET' })
+  }
+}
+
+export function getApiBaseUrl() {
+  return BASE_URL
 }
 
 export default {
   request,
+  getApiBaseUrl,
   dishApi,
   orderApi,
   fileApi,
   userApi,
   authApi,
-  categoryApi
+  categoryApi,
+  familyApi
 }

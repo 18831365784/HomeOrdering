@@ -38,12 +38,6 @@
       }
     },
     {
-      "path": "pages/dish/add",
-      "style": {
-        "navigationBarTitleText": "添加菜品"
-      }
-    },
-    {
       "path": "pages/dish/manage",
       "style": {
         "navigationBarTitleText": "菜品管理"

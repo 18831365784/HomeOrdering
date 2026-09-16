@@ -308,7 +308,7 @@ export default {
     async load() {
       try {
         // 管理页面显示所有菜品，包括已下架的
-        this.dishes = await dishApi.getList(null, this.uuid)
+        this.dishes = await dishApi.getList(null)
         // 按sort字段排序
         this.dishes.sort((a, b) => (a.sort || 0) - (b.sort || 0))
       } catch (e) { console.error(e) }
@@ -316,7 +316,7 @@ export default {
     
     async loadCategories() {
       try {
-        const list = await categoryApi.getList(1, this.uuid)
+        const list = await categoryApi.getList(1)
         this.categories = list
         this.categoryNames = list.map(c => c.name)
       } catch (e) { console.error(e) }
@@ -354,7 +354,7 @@ export default {
     
     async toggle(dish) {
       try {
-        await dishApi.update({ id: dish.id, status: dish.status === 1 ? 0 : 1 }, this.uuid)
+        await dishApi.update({ id: dish.id, status: dish.status === 1 ? 0 : 1 })
         this.load()
         // 通知首页刷新数据
         uni.$emit('dishUpdated')
@@ -396,12 +396,12 @@ export default {
       
       try {
         if (this.form.id) {
-          await dishApi.update(this.form, this.uuid)
+          await dishApi.update(this.form)
         } else {
           // 新增时设置sort为当前最大sort+1
           const maxSort = Math.max(...this.dishes.map(d => d.sort || 0), 0)
           this.form.sort = maxSort + 1
-          await dishApi.add(this.form, this.uuid)
+          await dishApi.add(this.form)
         }
         uni.showToast({ title: '已保存', icon: 'success' })
         this.showModal = false
@@ -471,7 +471,7 @@ export default {
         
         // 批量更新后端
         const updatePromises = this.dishes.map(dish =>
-          dishApi.update({ id: dish.id, sort: dish.sort }, this.uuid)
+          dishApi.update({ id: dish.id, sort: dish.sort })
         )
         
         await Promise.all(updatePromises)

@@ -104,7 +104,7 @@
 </template>
 
 <script>
-import { dishApi, categoryApi } from '@/utils/api.js'
+import { dishApi, categoryApi, familyApi } from '@/utils/api.js'
 import SafeImage from '@/components/SafeImage.vue'
 import cartManager from '@/utils/cart.js'
 import userManager from '@/utils/user.js'
@@ -174,8 +174,7 @@ export default {
     // 加载分类列表
     async loadCategories() {
       try {
-        const uuid = userManager.getUuid()
-        const list = await categoryApi.getList(1, uuid)
+        const list = await categoryApi.getList(1)
         this.categories = list.map(c => c.name)
         // 合并后端图标到映射（如果有）
         list.forEach(c => {
@@ -206,11 +205,14 @@ export default {
     },
     
     // 检查管理员状态
-    checkAdminStatus() {
-      const userInfo = userManager.getUserInfo()
-      this.isAdmin = userInfo && userInfo.role === 1
-      console.log('管理员状态:', this.isAdmin)
-      console.log('用户信息:', userInfo)
+    async checkAdminStatus() {
+      try {
+        this.isAdmin = !!(await familyApi.isFamilyAdmin())
+        const userInfo = userManager.getUserInfo() || {}
+        userManager.saveUserInfo({ ...userInfo, isAdmin: this.isAdmin })
+      } catch (e) {
+        this.isAdmin = userManager.isAdmin()
+      }
     },
     
     // 选择分类
@@ -243,8 +245,7 @@ export default {
     async loadDishes() {
       try {
         uni.showLoading({ title: '加载中...' })
-        const uuid = userManager.getUuid()
-        const dishes = await dishApi.getList(1, uuid) // 只查询启用的菜品
+        const dishes = await dishApi.getList(1) // 只查询启用的菜品
         this.dishes = dishes
         this.filteredDishes = dishes
       } catch (error) {

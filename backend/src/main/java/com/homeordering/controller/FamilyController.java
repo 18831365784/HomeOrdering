@@ -1,6 +1,11 @@
 package com.homeordering.controller;
 
+import com.homeordering.common.AuthContext;
+import com.homeordering.common.BusinessException;
+import com.homeordering.common.ErrorCode;
 import com.homeordering.common.Result;
+import com.homeordering.dto.request.CreateFamilyRequest;
+import com.homeordering.dto.request.UpdateFamilyRequest;
 import com.homeordering.dto.response.FamilyDTO;
 import com.homeordering.dto.response.FamilyMemberDTO;
 import com.homeordering.service.FamilyService;
@@ -11,9 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 家庭控制器
- */
 @Slf4j
 @RestController
 @RequestMapping("/family")
@@ -22,66 +24,49 @@ public class FamilyController {
 
     private final FamilyService familyService;
 
-    /**
-     * 创建家庭
-     */
     @PostMapping
-    public Result<FamilyDTO> createFamily(@RequestBody Map<String, String> params) {
-        String uuid = params.get("uuid");
-        String name = params.get("name");
-        log.info("创建家庭: uuid={}, name={}", uuid, name);
-        FamilyDTO family = familyService.createFamily(uuid, name);
+    public Result<FamilyDTO> createFamily(@RequestBody CreateFamilyRequest request) {
+        if (request == null || request.getName() == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID.getCode(), "请输入家庭名称");
+        }
+        FamilyDTO family = familyService.createFamily(AuthContext.requireUuid(), request.getName());
         return Result.success("创建成功", family);
     }
 
-    /**
-     * 通过邀请码加入家庭
-     */
     @PostMapping("/join")
     public Result<FamilyDTO> joinFamily(@RequestBody Map<String, String> params) {
-        String uuid = params.get("uuid");
         String inviteCode = params.get("inviteCode");
-        log.info("加入家庭: uuid={}, inviteCode={}", uuid, inviteCode);
-        FamilyDTO family = familyService.joinFamily(uuid, inviteCode);
+        FamilyDTO family = familyService.joinFamily(AuthContext.requireUuid(), inviteCode);
         return Result.success("加入成功", family);
     }
 
-    /**
-     * 获取家庭信息
-     */
     @GetMapping("/info")
-    public Result<FamilyDTO> getFamilyInfo(@RequestParam String uuid) {
-        log.info("获取家庭信息: uuid={}", uuid);
-        FamilyDTO family = familyService.getFamilyInfo(uuid);
-        return Result.success(family);
+    public Result<FamilyDTO> getFamilyInfo() {
+        return Result.success(familyService.getFamilyInfo(AuthContext.requireUuid()));
     }
 
-    /**
-     * 获取家庭成员列表
-     */
     @GetMapping("/members")
-    public Result<List<FamilyMemberDTO>> getFamilyMembers(@RequestParam String uuid) {
-        log.info("获取家庭成员: uuid={}", uuid);
-        List<FamilyMemberDTO> members = familyService.getFamilyMembers(uuid);
-        return Result.success(members);
+    public Result<List<FamilyMemberDTO>> getFamilyMembers() {
+        return Result.success(familyService.getFamilyMembers(AuthContext.requireUuid()));
     }
 
-    /**
-     * 重新生成邀请码（管理员）
-     */
     @PostMapping("/regenerate-code")
-    public Result<String> regenerateInviteCode(@RequestParam String uuid) {
-        log.info("重新生成邀请码: uuid={}", uuid);
-        String newCode = familyService.regenerateInviteCode(uuid);
+    public Result<String> regenerateInviteCode() {
+        String newCode = familyService.regenerateInviteCode(AuthContext.requireUuid());
         return Result.success("生成成功", newCode);
     }
 
-    /**
-     * 判断是否是家庭管理员
-     */
+    @PutMapping("/name")
+    public Result<FamilyDTO> updateFamilyName(@RequestBody UpdateFamilyRequest request) {
+        if (request == null || request.getName() == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID.getCode(), "请输入家庭名称");
+        }
+        FamilyDTO family = familyService.updateFamilyName(AuthContext.requireUuid(), request.getName());
+        return Result.success("修改成功", family);
+    }
+
     @GetMapping("/is-admin")
-    public Result<Boolean> isFamilyAdmin(@RequestParam String uuid) {
-        boolean isAdmin = familyService.isFamilyAdmin(uuid);
-        return Result.success(isAdmin);
+    public Result<Boolean> isFamilyAdmin() {
+        return Result.success(familyService.isFamilyAdmin(AuthContext.requireUuid()));
     }
 }

@@ -29,6 +29,7 @@ public enum ErrorCode {
     // 分类相关 (4xxx)
     CATEGORY_NOT_FOUND(4001, "分类不存在"),
     CATEGORY_HAS_DISHES(4002, "分类下有菜品，无法删除"),
+    CATEGORY_NAME_EXISTS(4003, "同家庭下分类名称已存在"),
 
     // 订单相关 (5xxx)
     ORDER_NOT_FOUND(5001, "订单不存在"),
@@ -44,6 +45,7 @@ public enum ErrorCode {
     FAMILY_ALREADY_JOINED(7002, "您已加入家庭"),
     FAMILY_INVITE_CODE_INVALID(7003, "邀请码无效"),
     FAMILY_NOT_ADMIN(7004, "您不是家庭管理员"),
+    FAMILY_NOT_MEMBER(7005, "不是同一家庭成员"),
 
     // 文件相关 (6xxx)
     FILE_UPLOAD_ERROR(6001, "文件上传失败"),

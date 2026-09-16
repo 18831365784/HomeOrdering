@@ -51,7 +51,7 @@
       <textarea
         class="remark-input"
         v-model="remark"
-        placeholder="有什么想对老公说的吗？❤️"
+        placeholder="口味、忌口等备注"
         maxlength="200"
       />
     </view>
@@ -95,7 +95,7 @@
 <script>
 import cartManager from '@/utils/cart.js'
 import { orderApi } from '@/utils/api.js'
-import familyApi from '@/utils/familyApi.js'
+import { familyApi } from '@/utils/api.js'
 import userManager from '@/utils/user.js'
 import SafeImage from '@/components/SafeImage.vue'
 
@@ -137,7 +137,7 @@ export default {
         const uuid = userManager.getUuid()
         if (!uuid) return
 
-        const info = await familyApi.getFamilyInfo(uuid)
+        const info = await familyApi.getFamilyInfo()
         if (info && info.members) {
           this.familyMembers = info.members
           // 默认选中自己
@@ -205,27 +205,26 @@ export default {
         })
         return
       }
+      if (!this.selectedMaker || !this.selectedMaker.uuid) {
+        uni.showToast({
+          title: '请选择制作人',
+          icon: 'none'
+        })
+        return
+      }
 
       try {
         uni.showLoading({ title: '提交中...' })
 
-        // 获取用户信息
-        const userInfo = userManager.getUserInfo()
-        const uuid = userManager.getUuid()
-
-        // 构建订单数据，包含扩展选项信息
+        // 构建订单数据（身份与家庭以服务端登录态为准）
         const orderData = {
           remark: this.buildOrderRemark(),
           items: this.cartItems.map(item => ({
             dishId: item.id,
             quantity: item.quantity,
-            unitPrice: item.price // 传递包含选项价格的实际单价
+            unitPrice: item.price
           })),
-          customerUuid: uuid,
-          customerName: userInfo?.nickname || '用户',
-          makerUuid: this.selectedMaker?.uuid || uuid,
-          makerName: this.selectedMaker?.nickname || userInfo?.nickname || '用户',
-          familyId: userInfo?.familyId || null
+          makerUuid: this.selectedMaker.uuid
         }
 
         console.log('提交订单数据:', orderData)
@@ -240,15 +239,9 @@ export default {
         
         uni.hideLoading()
         
-        // 根据用户角色显示不同提示
-        const isAdmin = userInfo && userInfo.role === 1
-        const title = isAdmin ? '订单创建成功' : '订单提交成功'
-        const content = isAdmin ? '下单成功' : '等待老公确认中...❤️'
-        
-        // 提示成功
         uni.showModal({
-          title: title,
-          content: content,
+          title: '订单提交成功',
+          content: '已通知制作人，可在订单页查看进度',
           showCancel: false,
           success: () => {
             // 跳转到订单列表

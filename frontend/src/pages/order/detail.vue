@@ -185,7 +185,7 @@ export default {
         success: async (res) => {
           if (res.confirm) {
             try {
-              await orderApi.acceptOrder(this.orderId, this.currentUuid)
+              await orderApi.acceptOrder(this.orderId)
               uni.showToast({ title: '接单成功', icon: 'success' })
               this.loadOrderDetail()
             } catch (error) {
@@ -204,7 +204,7 @@ export default {
         success: async (res) => {
           if (res.confirm) {
             try {
-              await orderApi.cancelOrder(this.orderId, this.currentUuid)
+              await orderApi.cancelOrder(this.orderId)
               uni.showToast({ title: '订单已取消', icon: 'success' })
               this.loadOrderDetail()
             } catch (error) {
@@ -223,7 +223,7 @@ export default {
         success: async (res) => {
           if (res.confirm) {
             try {
-              await orderApi.finishOrder(this.orderId, this.currentUuid)
+              await orderApi.finishOrder(this.orderId)
               uni.showToast({ title: '订单已完成', icon: 'success' })
               this.loadOrderDetail()
             } catch (error) {
