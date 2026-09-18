@@ -13,6 +13,7 @@ spring:
     username: ${DB_USERNAME:admin}
     password: "${DB_PASSWORD:Ljf010711!}"
 
+# 上传目录：相对路径相对「java -jar 启动时所在目录」；生产可改绝对路径或环境变量 FILE_UPLOAD_PATH
 file:
   upload:
     path: ${FILE_UPLOAD_PATH:./uploads/}

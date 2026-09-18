@@ -10,6 +10,7 @@ import com.homeordering.entity.User;
 import com.homeordering.mapper.FamilyMapper;
 import com.homeordering.mapper.UserMapper;
 import com.homeordering.service.FamilyService;
+import com.homeordering.util.FileUrlHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -30,6 +31,7 @@ public class FamilyServiceImpl implements FamilyService {
 
     private final FamilyMapper familyMapper;
     private final UserMapper userMapper;
+    private final FileUrlHelper fileUrlHelper;
 
     @Override
     @Transactional
@@ -128,7 +130,7 @@ public class FamilyServiceImpl implements FamilyService {
             FamilyMemberDTO dto = new FamilyMemberDTO();
             dto.setUuid(member.getUuid());
             dto.setNickname(member.getNickname());
-            dto.setAvatarUrl(member.getAvatarUrl());
+            dto.setAvatarUrl(fileUrlHelper.toPublicUrl(member.getAvatarUrl()));
             dto.setIsAdmin(family.getAdminUuid().equals(member.getUuid()));
             dto.setBalance(member.getBalance());
             result.add(dto);
@@ -219,7 +221,7 @@ public class FamilyServiceImpl implements FamilyService {
             FamilyMemberDTO memberDTO = new FamilyMemberDTO();
             memberDTO.setUuid(member.getUuid());
             memberDTO.setNickname(member.getNickname());
-            memberDTO.setAvatarUrl(member.getAvatarUrl());
+            memberDTO.setAvatarUrl(fileUrlHelper.toPublicUrl(member.getAvatarUrl()));
             memberDTO.setIsAdmin(family.getAdminUuid().equals(member.getUuid()));
             memberDTO.setBalance(member.getBalance());
             memberDTOs.add(memberDTO);

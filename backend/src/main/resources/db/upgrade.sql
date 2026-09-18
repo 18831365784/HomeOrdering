@@ -119,5 +119,30 @@ SET o.customer_uuid = IFNULL(o.customer_uuid, u.uuid),
     o.maker_name = IFNULL(o.maker_name, u.nickname)
 WHERE o.customer_uuid IS NULL;
 
+-- 本站上传图只存相对路径 /uploads/...，换域名/IP 时由后端用 server.url 拼接
+UPDATE `dish`
+SET `image_url` = CONCAT('/uploads/', SUBSTRING_INDEX(`image_url`, '/uploads/', -1))
+WHERE `image_url` IS NOT NULL
+  AND `image_url` LIKE '%/uploads/%'
+  AND `image_url` NOT LIKE '/uploads/%';
+
+UPDATE `category`
+SET `icon_url` = CONCAT('/uploads/', SUBSTRING_INDEX(`icon_url`, '/uploads/', -1))
+WHERE `icon_url` IS NOT NULL
+  AND `icon_url` LIKE '%/uploads/%'
+  AND `icon_url` NOT LIKE '/uploads/%';
+
+UPDATE `user`
+SET `avatar_url` = CONCAT('/uploads/', SUBSTRING_INDEX(`avatar_url`, '/uploads/', -1))
+WHERE `avatar_url` IS NOT NULL
+  AND `avatar_url` LIKE '%/uploads/%'
+  AND `avatar_url` NOT LIKE '/uploads/%';
+
+UPDATE `order_detail`
+SET `dish_image` = CONCAT('/uploads/', SUBSTRING_INDEX(`dish_image`, '/uploads/', -1))
+WHERE `dish_image` IS NOT NULL
+  AND `dish_image` LIKE '%/uploads/%'
+  AND `dish_image` NOT LIKE '/uploads/%';
+
 DROP PROCEDURE IF EXISTS `ho_add_column_if_missing`;
 DROP PROCEDURE IF EXISTS `ho_add_index_if_missing`;

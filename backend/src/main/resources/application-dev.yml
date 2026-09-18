@@ -16,6 +16,7 @@ mybatis-plus:
 
 file:
   upload:
+    # 相对路径相对启动目录 user.dir；可改绝对路径或设环境变量 FILE_UPLOAD_PATH
     path: ${FILE_UPLOAD_PATH:./uploads/}
 
 logging:

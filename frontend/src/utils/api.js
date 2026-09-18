@@ -3,6 +3,19 @@
  */
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
+/** 将 /uploads/... 或旧绝对上传地址拼成当前可访问的绝对 URL；外链原样返回 */
+export function resolveMediaUrl(url) {
+  if (!url || typeof url !== 'string') return url || ''
+  const value = url.trim()
+  const marker = '/uploads/'
+  const idx = value.indexOf(marker)
+  if (idx >= 0) {
+    const base = (typeof BASE_URL === 'string' ? BASE_URL : '').replace(/\/$/, '')
+    return base + value.substring(idx)
+  }
+  return value
+}
+
 function buildHeaders(extra = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -244,6 +257,7 @@ export function getApiBaseUrl() {
 export default {
   request,
   getApiBaseUrl,
+  resolveMediaUrl,
   dishApi,
   orderApi,
   fileApi,

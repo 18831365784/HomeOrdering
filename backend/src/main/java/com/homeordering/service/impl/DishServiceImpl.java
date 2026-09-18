@@ -11,6 +11,7 @@ import com.homeordering.entity.User;
 import com.homeordering.mapper.DishMapper;
 import com.homeordering.service.DishService;
 import com.homeordering.service.FamilyAccessService;
+import com.homeordering.util.FileUrlHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class DishServiceImpl implements DishService {
 
     private final DishMapper dishMapper;
     private final FamilyAccessService familyAccessService;
+    private final FileUrlHelper fileUrlHelper;
 
     @Override
     public Long addDish(Dish dish) {
@@ -34,6 +36,7 @@ public class DishServiceImpl implements DishService {
             throw new BusinessException(ErrorCode.PARAM_INVALID);
         }
         dish.setName(dish.getName().trim());
+        dish.setImageUrl(fileUrlHelper.toStoredPath(dish.getImageUrl()));
         dish.setFamilyId(family.getId());
         dish.setStatus(dish.getStatus() == null ? 1 : dish.getStatus());
         dish.setSort(dish.getSort() == null ? 0 : dish.getSort());
@@ -53,7 +56,7 @@ public class DishServiceImpl implements DishService {
         if (user.getFamilyId() == null || !user.getFamilyId().equals(dish.getFamilyId())) {
             throw new BusinessException(ErrorCode.FAMILY_NOT_MEMBER);
         }
-        return dish;
+        return withPublicUrls(dish);
     }
 
     @Override
@@ -68,7 +71,7 @@ public class DishServiceImpl implements DishService {
             queryWrapper.eq(Dish::getStatus, status);
         }
         queryWrapper.orderByAsc(Dish::getSort).orderByDesc(Dish::getCreateTime);
-        return dishMapper.selectList(queryWrapper);
+        return dishMapper.selectList(queryWrapper).stream().map(this::withPublicUrls).toList();
     }
 
     @Override
@@ -82,6 +85,7 @@ public class DishServiceImpl implements DishService {
         if (!user.getFamilyId().equals(existing.getFamilyId())) {
             throw new BusinessException(ErrorCode.FAMILY_NOT_ADMIN);
         }
+        dish.setImageUrl(fileUrlHelper.toStoredPath(dish.getImageUrl()));
         dish.setFamilyId(existing.getFamilyId());
         dish.setUpdateTime(LocalDateTime.now());
         dishMapper.updateById(dish);
@@ -106,5 +110,10 @@ public class DishServiceImpl implements DishService {
         LambdaUpdateWrapper<Dish> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(Dish::getId, dishId).setSql("order_count = order_count + " + count);
         dishMapper.update(null, updateWrapper);
+    }
+
+    private Dish withPublicUrls(Dish dish) {
+        dish.setImageUrl(fileUrlHelper.toPublicUrl(dish.getImageUrl()));
+        return dish;
     }
 }

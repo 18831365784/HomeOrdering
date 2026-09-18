@@ -13,6 +13,7 @@ import com.homeordering.entity.User;
 import com.homeordering.mapper.UserMapper;
 import com.homeordering.service.FamilyAccessService;
 import com.homeordering.service.UserService;
+import com.homeordering.util.FileUrlHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -34,6 +35,7 @@ public class UserServiceImpl implements UserService {
     private final FamilyAccessService familyAccessService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final FileUrlHelper fileUrlHelper;
 
     @Value("${wx.appid}")
     private String appid;
@@ -61,7 +63,7 @@ public class UserServiceImpl implements UserService {
             user.setOpenid(openid);
             user.setUuid(UUID.randomUUID().toString());
             user.setNickname(loginDTO.getNickname());
-            user.setAvatarUrl(loginDTO.getAvatarUrl());
+            user.setAvatarUrl(fileUrlHelper.toStoredPath(loginDTO.getAvatarUrl()));
             user.setRole(0);
             user.setBalance(BigDecimal.ZERO);
             user.setCreateTime(now);
@@ -73,7 +75,7 @@ public class UserServiceImpl implements UserService {
                 user.setNickname(loginDTO.getNickname());
             }
             if (loginDTO.getAvatarUrl() != null) {
-                user.setAvatarUrl(loginDTO.getAvatarUrl());
+                user.setAvatarUrl(fileUrlHelper.toStoredPath(loginDTO.getAvatarUrl()));
             }
             user.setLastLoginTime(now);
             user.setUpdateTime(now);
@@ -113,7 +115,7 @@ public class UserServiceImpl implements UserService {
             user.setNickname(updateDTO.getNickname());
         }
         if (updateDTO.getAvatarUrl() != null) {
-            user.setAvatarUrl(updateDTO.getAvatarUrl());
+            user.setAvatarUrl(fileUrlHelper.toStoredPath(updateDTO.getAvatarUrl()));
         }
         if (updateDTO.getPhone() != null) {
             user.setPhone(updateDTO.getPhone());
@@ -144,6 +146,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO toDto(User user) {
         UserDTO dto = new UserDTO();
         BeanUtils.copyProperties(user, dto);
+        dto.setAvatarUrl(fileUrlHelper.toPublicUrl(user.getAvatarUrl()));
         dto.setIsAdmin(familyAccessService.isFamilyAdmin(user.getUuid()));
         dto.setRole(Boolean.TRUE.equals(dto.getIsAdmin()) ? 1 : 0);
         return dto;

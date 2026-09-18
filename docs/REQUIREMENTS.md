@@ -51,8 +51,10 @@
 
 ### 文件
 
-- 图片本地存储。返回给前端的 URL 用后端配置的 `server.url` 拼接。
+- 图片本地存储。库内本站上传只存相对路径 `/uploads/...`（不含主机）；接口返回时用当前 `server.url` + `context-path` 拼绝对地址。微信头像等外链可存完整 URL。
+- 上传目录由 `file.upload.path` 配置（`application-dev.yml` / `application-prod.yml` 或环境变量 `FILE_UPLOAD_PATH`）。相对路径相对进程启动目录；生产可改为绝对路径。
 - 不做云存储实现。
+- 旧库若已存完整 ngrok/域名地址：执行 `upgrade.sql` 会剥成 `/uploads/...`。即使未迁移，接口读出时也会按当前 `server.url` 重写本站上传地址。
 
 ## 配置唯一源
 

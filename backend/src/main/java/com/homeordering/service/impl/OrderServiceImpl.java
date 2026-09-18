@@ -17,6 +17,7 @@ import com.homeordering.mapper.OrderMapper;
 import com.homeordering.mapper.UserMapper;
 import com.homeordering.service.FamilyAccessService;
 import com.homeordering.service.OrderService;
+import com.homeordering.util.FileUrlHelper;
 import com.homeordering.vo.OrderDetailVO;
 import com.homeordering.vo.OrderVO;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class OrderServiceImpl implements OrderService {
     private final DishMapper dishMapper;
     private final UserMapper userMapper;
     private final FamilyAccessService familyAccessService;
+    private final FileUrlHelper fileUrlHelper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -101,7 +103,7 @@ public class OrderServiceImpl implements OrderService {
             detail.setOrderId(order.getId());
             detail.setDishId(dish.getId());
             detail.setDishName(dish.getName());
-            detail.setDishImage(dish.getImageUrl());
+            detail.setDishImage(fileUrlHelper.toStoredPath(dish.getImageUrl()));
             BigDecimal actualUnitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : dish.getPrice();
             detail.setDishPrice(actualUnitPrice);
             detail.setQuantity(item.getQuantity());
@@ -266,6 +268,7 @@ public class OrderServiceImpl implements OrderService {
         for (OrderDetail detail : details) {
             OrderDetailVO detailVO = new OrderDetailVO();
             BeanUtils.copyProperties(detail, detailVO);
+            detailVO.setDishImage(fileUrlHelper.toPublicUrl(detail.getDishImage()));
             detailVOs.add(detailVO);
         }
         return detailVOs;

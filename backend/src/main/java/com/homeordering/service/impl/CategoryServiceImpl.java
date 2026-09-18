@@ -10,6 +10,7 @@ import com.homeordering.entity.User;
 import com.homeordering.mapper.CategoryMapper;
 import com.homeordering.service.CategoryService;
 import com.homeordering.service.FamilyAccessService;
+import com.homeordering.util.FileUrlHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryMapper categoryMapper;
     private final FamilyAccessService familyAccessService;
+    private final FileUrlHelper fileUrlHelper;
 
     @Override
     public Long addCategory(Category category) {
@@ -34,6 +36,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
         ensureUniqueName(family.getId(), category.getName().trim(), null);
         category.setName(category.getName().trim());
+        category.setIconUrl(fileUrlHelper.toStoredPath(category.getIconUrl()));
         category.setFamilyId(family.getId());
         category.setStatus(category.getStatus() == null ? 1 : category.getStatus());
         category.setSort(category.getSort() == null ? 0 : category.getSort());
@@ -55,7 +58,7 @@ public class CategoryServiceImpl implements CategoryService {
             queryWrapper.eq(Category::getStatus, status);
         }
         queryWrapper.orderByAsc(Category::getSort);
-        return categoryMapper.selectList(queryWrapper);
+        return categoryMapper.selectList(queryWrapper).stream().map(this::withPublicUrls).toList();
     }
 
     @Override
@@ -74,6 +77,7 @@ public class CategoryServiceImpl implements CategoryService {
             ensureUniqueName(existing.getFamilyId(), name, existing.getId());
             category.setName(name);
         }
+        category.setIconUrl(fileUrlHelper.toStoredPath(category.getIconUrl()));
         category.setFamilyId(existing.getFamilyId());
         category.setUpdateTime(LocalDateTime.now());
         categoryMapper.updateById(category);
@@ -102,5 +106,10 @@ public class CategoryServiceImpl implements CategoryService {
         if (categoryMapper.selectCount(query) > 0) {
             throw new BusinessException(ErrorCode.CATEGORY_NAME_EXISTS);
         }
+    }
+
+    private Category withPublicUrls(Category category) {
+        category.setIconUrl(fileUrlHelper.toPublicUrl(category.getIconUrl()));
+        return category;
     }
 }

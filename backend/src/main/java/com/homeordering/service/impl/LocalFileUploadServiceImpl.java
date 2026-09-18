@@ -3,6 +3,8 @@ package com.homeordering.service.impl;
 import com.homeordering.common.BusinessException;
 import com.homeordering.common.ErrorCode;
 import com.homeordering.service.FileUploadService;
+import com.homeordering.util.FileUrlHelper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,16 +19,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class LocalFileUploadServiceImpl implements FileUploadService {
+
+    private final FileUrlHelper fileUrlHelper;
 
     @Value("${file.upload.path}")
     private String uploadPath;
-
-    @Value("${server.servlet.context-path:}")
-    private String contextPath;
-
-    @Value("${server.url}")
-    private String serverUrl;
 
     @Override
     public String uploadFile(MultipartFile file) throws Exception {
@@ -39,8 +38,8 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR.getCode(), "文件不能为空");
         }
         File trueDir = (subDir == null || subDir.isEmpty())
-                ? new File(uploadPath)
-                : new File(uploadPath, subDir);
+                ? resolveUploadRoot()
+                : new File(resolveUploadRoot(), subDir);
         if (!trueDir.exists() && !trueDir.mkdirs()) {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR.getCode(), "创建上传目录失败");
         }
@@ -56,24 +55,33 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
         Path filePath = Paths.get(trueDir.getAbsolutePath(), fileName);
         Files.write(filePath, file.getBytes());
 
-        String baseUrl = serverUrl.endsWith("/") ? serverUrl.substring(0, serverUrl.length() - 1) : serverUrl;
-        String urlTail = (subDir == null || subDir.isEmpty())
+        String stored = (subDir == null || subDir.isEmpty())
                 ? ("/uploads/" + fileName)
                 : ("/uploads/" + subDir + "/" + fileName);
-        return baseUrl + contextPath + urlTail;
+        // 接口立刻给可访问的绝对地址；业务入库时再 toStoredPath 剥主机
+        return fileUrlHelper.toPublicUrl(stored);
     }
 
     @Override
     public boolean deleteFile(String fileUrl) {
         try {
-            if (fileUrl == null || !fileUrl.contains("/uploads/")) {
+            String stored = fileUrlHelper.toStoredPath(fileUrl);
+            if (stored == null || !stored.startsWith("/uploads/")) {
                 return false;
             }
-            String relative = fileUrl.substring(fileUrl.indexOf("/uploads/") + "/uploads/".length());
-            Path filePath = Paths.get(uploadPath, relative.split("/"));
+            String relative = stored.substring("/uploads/".length());
+            Path filePath = Paths.get(resolveUploadRoot().getAbsolutePath(), relative.split("/"));
             return Files.deleteIfExists(filePath);
         } catch (IOException e) {
             return false;
         }
+    }
+
+    private File resolveUploadRoot() {
+        String path = uploadPath == null ? "./uploads/" : uploadPath.trim();
+        if (path.startsWith("./") || path.startsWith(".\\")) {
+            return new File(System.getProperty("user.dir"), path.substring(2)).getAbsoluteFile();
+        }
+        return new File(path).getAbsoluteFile();
     }
 }

@@ -7,7 +7,7 @@
 </template>
 
 <script>
-import { getApiBaseUrl } from '@/utils/api.js'
+import { getApiBaseUrl, resolveMediaUrl } from '@/utils/api.js'
 
 export default {
   name: 'SafeImage',
@@ -35,25 +35,26 @@ export default {
         this.displaySrc = ''
         return
       }
+      const resolved = resolveMediaUrl(url)
       const base = getApiBaseUrl() || ''
-      const needNgrokHeader = base.includes('ngrok') || url.includes('ngrok')
+      const needNgrokHeader = base.includes('ngrok') || resolved.includes('ngrok')
       if (needNgrokHeader) {
         uni.downloadFile({
-          url,
+          url: resolved,
           header: { 'ngrok-skip-browser-warning': 'true' },
           success: (res) => {
             if (res.statusCode === 200 && res.tempFilePath) {
               this.displaySrc = res.tempFilePath
             } else {
-              this.displaySrc = url
+              this.displaySrc = resolved
             }
           },
           fail: () => {
-            this.displaySrc = url
+            this.displaySrc = resolved
           }
         })
       } else {
-        this.displaySrc = url
+        this.displaySrc = resolved
       }
     }
   }

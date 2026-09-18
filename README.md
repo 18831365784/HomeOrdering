@@ -45,6 +45,10 @@ yml 中形如 `${NAME:默认值}`：有环境变量用环境变量，没有就�
 - 域名未备案前：`http://82.157.3.231:8080`（腾讯云未备案不能走 80/443，小程序开发者工具需关闭域名校验）
 - 备案通过并配好 HTTPS 后：`https://selfcode.top`
 
+数据库里本站图片只存 `/uploads/...`，换服务器只改 `server.url`（并搬迁上传目录文件）即可，不必改库。
+
+`file.upload.path` 控制磁盘目录：默认 `./uploads/`（相对 `java -jar` 或 `mvn spring-boot:run` 启动时所在目录）。换目录时改对应 yml 或环境变量 `FILE_UPLOAD_PATH` 为绝对路径，把旧文件拷过去后重启。
+
 前端 `VITE_API_BASE_URL` 须带 `/api`。改完 `.env*` 后要重新执行 `npm run dev:mp-weixin`。
 
 ## 数据库
