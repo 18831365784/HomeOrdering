@@ -1,0 +1,23 @@
+# 本机开发。启动：cd backend && mvn spring-boot:run
+
+server:
+  # 小程序/浏览器访问后端的根地址（不要带 /api）
+  url: ${SERVER_URL:http://localhost:8080}
+
+spring:
+  datasource:
+    url: "${DB_URL:jdbc:mysql://82.157.3.231:3306/home_ordering?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false}"
+    username: ${DB_USERNAME:admin}
+    password: "${DB_PASSWORD:Ljf010711!}"
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH:./uploads/}
+
+logging:
+  level:
+    com.homeordering: DEBUG

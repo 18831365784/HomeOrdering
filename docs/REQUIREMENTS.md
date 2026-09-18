@@ -58,16 +58,22 @@
 
 | 用途 | 唯一位置 |
 |---|---|
-| 后端端口、context-path、`server.url`、数据源、上传路径、微信占位 | `backend/src/main/resources/application.properties` |
+| 后端端口、context-path、微信占位 | `backend/src/main/resources/application.yml` |
+| 本机 `server.url`、数据源、上传路径 | `backend/src/main/resources/application-dev.yml` |
+| 生产 `server.url`、数据源、上传路径 | `backend/src/main/resources/application-prod.yml` |
 | 微信密钥等敏感项 | 环境变量，示例说明见 `backend/.env.example`（该文件不会被程序自动加载），禁止提交真实密钥 |
 | 前端 API 根路径 | `frontend/.env.development` 与 `frontend/.env.production` 的 `VITE_API_BASE_URL` |
+
+默认 profile 为 `dev`。服务器用 `--spring.profiles.active=prod` 或环境变量 `SPRING_PROFILES_ACTIVE=prod`。
+
+域名 `selfcode.top` 未备案前：生产 `server.url` 与前端生产 API 用 `http://82.157.3.231:8080`（不要走 80/443）。备案并启用 HTTPS 后改为 `https://selfcode.top`。
 
 强制：
 
 - 业务 Java / Vue / JS **不得**硬编码主机、端口、ngrok 域名。
 - 前端只能读取 `import.meta.env.VITE_API_BASE_URL`。
 - 换机器只改上表文件后重启后端 / 重新编译小程序。
-- `application.properties` 里 `${NAME:默认值}`：有环境变量用环境变量，没有则用默认值。本机可直接改默认值，不必设环境变量。
+- yml 里 `${NAME:默认值}`：有环境变量用环境变量，没有则用默认值。本机可直接改对应 profile 的默认值，不必设环境变量。
 
 ## 数据库唯一源
 

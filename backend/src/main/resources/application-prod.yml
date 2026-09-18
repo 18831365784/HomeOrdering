@@ -1,0 +1,23 @@
+# 服务器生产环境。启动：java -jar xxx.jar --spring.profiles.active=prod
+#
+# 域名 selfcode.top 尚未备案：腾讯云未备案域名不能走 80/443，
+# 当前用公网 IP + 8080。备案通过并配好 HTTPS 后，把 server.url 改为 https://selfcode.top
+
+server:
+  url: ${SERVER_URL:http://82.157.3.231:8080}
+
+spring:
+  datasource:
+    # 后端与 MySQL 同机，走回环地址
+    url: "${DB_URL:jdbc:mysql://127.0.0.1:3306/home_ordering?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false}"
+    username: ${DB_USERNAME:admin}
+    password: "${DB_PASSWORD:Ljf010711!}"
+
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH:./uploads/}
+
+logging:
+  level:
+    root: INFO
+    com.homeordering: INFO

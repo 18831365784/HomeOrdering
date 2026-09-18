@@ -1,0 +1,36 @@
+# 公共配置。环境差异写在 application-dev.yml / application-prod.yml
+# 默认 dev；服务器上用 --spring.profiles.active=prod 或环境变量 SPRING_PROFILES_ACTIVE=prod
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+mybatis-plus:
+  type-aliases-package: com.homeordering.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+file:
+  upload:
+    type: local
+
+# 密钥优先用环境变量；本机可改默认值，不要把真实密钥提交到公开仓库
+wx:
+  appid: ${WX_APPID:wxe17c8a6b5b7ff823}
+  secret: ${WX_SECRET:7cda5e74ad68a823dd29aae7e2d1a229}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"

@@ -16,7 +16,9 @@ HomeOrdering/
 ├── README.md
 ├── docs/REQUIREMENTS.md
 ├── backend/src/main/resources/
-│   ├── application.properties    # 后端唯一配置源
+│   ├── application.yml           # 后端公共配置
+│   ├── application-dev.yml       # 本机开发
+│   ├── application-prod.yml      # 服务器生产
 │   └── db/init.sql | upgrade.sql
 └── frontend/
     ├── .env.development          # 前端开发唯一配置源
@@ -28,16 +30,22 @@ HomeOrdering/
 
 | 端 | 文件 | 必改项 |
 |---|---|---|
-| 后端 | `backend/src/main/resources/application.properties` | `server.url`、数据源、`file.upload.path` |
+| 后端公共 | `backend/src/main/resources/application.yml` | 端口、context-path、微信占位 |
+| 后端开发 | `backend/src/main/resources/application-dev.yml` | `server.url`、数据源、`file.upload.path` |
+| 后端生产 | `backend/src/main/resources/application-prod.yml` | `server.url`、数据源、`file.upload.path` |
 | 前端开发 | `frontend/.env.development` | `VITE_API_BASE_URL` |
 | 前端真机/发布 | `frontend/.env.production` | `VITE_API_BASE_URL` |
-| 微信密钥 | 启动前设环境变量 `WX_APPID`、`WX_SECRET`（说明见 `backend/.env.example`；本机也可直接改 properties，但不要提交真实密钥） | 不要写进业务代码 |
+| 微信密钥 | 启动前设环境变量 `WX_APPID`、`WX_SECRET`（说明见 `backend/.env.example`；本机也可直接改 yml 默认值，但不要提交真实密钥） | 不要写进业务代码 |
 
-`application.properties` 中形如 `${NAME:默认值}`：有环境变量用环境变量，没有就用冒号后的默认值。日常本机开发直接改默认值即可。
+yml 中形如 `${NAME:默认值}`：有环境变量用环境变量，没有就用冒号后的默认值。日常本机开发直接改对应 profile 的默认值即可。
 
-`server.url` 用于拼接上传后的图片绝对地址，须与小程序实际能访问到的后端一致（本机调试用 `http://localhost:8080`，真机用内网穿透或公网域名，不要带 `/api`）。
+`server.url` 用于拼接上传后的图片绝对地址，须与小程序实际能访问到的后端一致（不要带 `/api`）：
 
-前端 `VITE_API_BASE_URL` 须带 `/api`，例如 `http://localhost:8080/api`。改完 `.env*` 后要重新执行 `npm run dev:mp-weixin`。
+- 本机调试：`http://localhost:8080`
+- 域名未备案前：`http://82.157.3.231:8080`（腾讯云未备案不能走 80/443，小程序开发者工具需关闭域名校验）
+- 备案通过并配好 HTTPS 后：`https://selfcode.top`
+
+前端 `VITE_API_BASE_URL` 须带 `/api`。改完 `.env*` 后要重新执行 `npm run dev:mp-weixin`。
 
 ## 数据库
 
@@ -52,14 +60,15 @@ mysql -u root -p < backend/src/main/resources/db/init.sql
 
 ## 启动
 
-环境：JDK 17+、Maven 3.6+、MySQL 8、Node.js 16+、微信开发者工具。
+环境：JDK 17+、Maven 3.6+、MySQL 8、Node.js 16+、微信开发者工具。默认 profile 为 `dev`。
 
-1. 配置 `application.properties`；微信登录需提供 `WX_APPID` / `WX_SECRET`（环境变量或写入 properties 本地不提交）。
-2. `cd backend && mvn spring-boot:run`  
-   探活：`curl http://localhost:8080/api/health` 应返回成功。
-3. 配置 `frontend/.env.development`。
+1. 本机改 `application-dev.yml`；服务器改 `application-prod.yml`。微信登录需提供 `WX_APPID` / `WX_SECRET`（环境变量或写入 yml 本地不提交）。
+2. 本机：`cd backend && mvn spring-boot:run`  
+   服务器：`java -jar home-ordering-backend-1.0.0.jar --spring.profiles.active=prod`  
+   探活：本机 `curl http://localhost:8080/api/health`；服务器 `curl http://82.157.3.231:8080/api/health`，应返回成功。
+3. 本机前端用 `frontend/.env.development`；真机/发布用 `frontend/.env.production`。
 4. `cd frontend && npm install && npm run dev:mp-weixin`
-5. 微信开发者工具导入 `frontend/dist/dev/mp-weixin`。开发阶段可关闭域名校验。真机调试需配置合法 request / uploadFile / downloadFile 域名。
+5. 微信开发者工具导入 `frontend/dist/dev/mp-weixin`。备案完成前须关闭 request / uploadFile / downloadFile 域名校验。备案后把合法域名配成 `https://selfcode.top`。
 
 ## 使用流程
 
