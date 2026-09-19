@@ -39,6 +39,7 @@ public enum ErrorCode {
     ORDER_NOT_MAKER(5005, "您不是该订单的制作者"),
     ORDER_CANNOT_CANCEL(5006, "该状态下无法取消订单"),
     BALANCE_INSUFFICIENT(5007, "余额不足，无法下单"),
+    ORDER_CANNOT_REJECT(5008, "该状态下无法拒绝订单"),
 
     // 家庭相关 (7xxx)
     FAMILY_NOT_FOUND(7001, "未找到家庭"),

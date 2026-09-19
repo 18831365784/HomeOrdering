@@ -23,7 +23,7 @@ public class Order implements Serializable {
     private BigDecimal totalAmount;
 
     /**
-     * 订单状态: 0-待接单 1-制作中 2-已完成 -1-已取消
+     * 订单状态: 0-待接单 1-制作中 2-已完成 -1-已取消 -2-制作人已拒绝
      */
     private Integer status;
 

@@ -95,6 +95,11 @@
               @click.stop="handleAccept(order)"
             >接单</button>
             <button
+              v-if="order.status === 0"
+              class="btn btn-sm btn-danger"
+              @click.stop="handleReject(order)"
+            >拒绝</button>
+            <button
               v-if="order.status === 1"
               class="btn btn-sm btn-success"
               @click.stop="handleFinish(order)"
@@ -157,6 +162,7 @@ export default {
 
     getBadgeClass(status) {
       const classMap = {
+        '-2': 'badge-gray',
         '-1': 'badge-gray',
         '0': 'badge-warning',
         '1': 'badge-info',
@@ -186,6 +192,24 @@ export default {
       } catch (e) {
         uni.showToast({ title: e.message || '接单失败', icon: 'none' })
       }
+    },
+
+    async handleReject(order) {
+      uni.showModal({
+        title: '提示',
+        content: '确定要拒绝该订单吗？拒绝后将退还下单人余额。',
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              await orderApi.rejectOrder(order.id)
+              uni.showToast({ title: '已拒绝订单', icon: 'success' })
+              this.loadOrders()
+            } catch (e) {
+              uni.showToast({ title: e.message || '拒绝失败', icon: 'none' })
+            }
+          }
+        }
+      })
     },
 
     async handleFinish(order) {

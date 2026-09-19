@@ -6,7 +6,8 @@
         <view class="status-icon">
           <text v-if="order.status === 0">⏰</text>
           <text v-else-if="order.status === 1">💕</text>
-          <text v-else>✅</text>
+          <text v-else-if="order.status === 2">✅</text>
+          <text v-else>✕</text>
         </view>
         <view class="status-info">
           <text class="status-text">{{ order.statusText }}</text>
@@ -78,10 +79,17 @@
         >
           接单
         </button>
-
-        <!-- 下单人 - 待接单状态 -->
         <button
-          v-if="isCustomer && order.status === 0"
+          v-if="isMaker && order.status === 0"
+          class="action-btn action-btn-outline"
+          @click="handleReject"
+        >
+          拒绝
+        </button>
+
+        <!-- 下单人 - 待接单状态（制作人看自己的制作单时不显示取消，用拒绝） -->
+        <button
+          v-if="isCustomer && !isMaker && order.status === 0"
           class="action-btn action-btn-outline"
           @click="handleCancel"
         >
@@ -126,7 +134,11 @@ export default {
 
   computed: {
     showActionButton() {
-      return this.isMaker || this.isCustomer
+      if (!this.order) return false
+      if (this.order.status === 0 && this.isMaker) return true
+      if (this.order.status === 0 && this.isCustomer && !this.isMaker) return true
+      if (this.order.status === 1 && this.isMaker) return true
+      return false
     }
   },
 
@@ -190,6 +202,27 @@ export default {
               this.loadOrderDetail()
             } catch (error) {
               console.error('接单失败:', error)
+              uni.showToast({ title: error.message || '接单失败', icon: 'none' })
+            }
+          }
+        }
+      })
+    },
+
+    // 拒绝订单（制作人操作）
+    handleReject() {
+      uni.showModal({
+        title: '提示',
+        content: '确定要拒绝该订单吗？拒绝后将退还下单人余额。',
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              await orderApi.rejectOrder(this.orderId)
+              uni.showToast({ title: '已拒绝订单', icon: 'success' })
+              this.loadOrderDetail()
+            } catch (error) {
+              console.error('拒绝订单失败:', error)
+              uni.showToast({ title: error.message || '拒绝失败', icon: 'none' })
             }
           }
         }
@@ -209,6 +242,7 @@ export default {
               this.loadOrderDetail()
             } catch (error) {
               console.error('取消订单失败:', error)
+              uni.showToast({ title: error.message || '取消失败', icon: 'none' })
             }
           }
         }
@@ -228,6 +262,7 @@ export default {
               this.loadOrderDetail()
             } catch (error) {
               console.error('完成订单失败:', error)
+              uni.showToast({ title: error.message || '操作失败', icon: 'none' })
             }
           }
         }
@@ -240,7 +275,8 @@ export default {
         0: '待接单',
         1: '制作中',
         2: '已完成',
-        '-1': '已取消'
+        '-1': '已取消',
+        '-2': '制作人已拒绝'
       }
       return statusMap[status] || '未知状态'
     },

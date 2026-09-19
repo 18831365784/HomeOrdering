@@ -110,6 +110,10 @@ CALL ho_add_column_if_missing('order', 'maker_name',
 CALL ho_add_column_if_missing('order', 'family_id',
   'ALTER TABLE `order` ADD COLUMN `family_id` BIGINT DEFAULT NULL COMMENT ''家庭ID'' AFTER `maker_name`');
 
+-- 补充订单状态注释（新增 -2 制作人已拒绝，无结构变更）
+ALTER TABLE `order` MODIFY COLUMN `status` TINYINT NOT NULL DEFAULT 0
+  COMMENT '订单状态: -2制作人已拒绝 -1已取消 0待接单 1制作中 2已完成';
+
 -- 旧脚本曾用非法的 UPDATE ... FROM，这里用 MySQL 可执行写法尽量补历史订单身份
 UPDATE `order` o
 JOIN `user` u ON u.role = 1

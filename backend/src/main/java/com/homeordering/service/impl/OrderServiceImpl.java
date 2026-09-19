@@ -186,6 +186,23 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public boolean rejectOrder(Long id) {
+        User actor = AuthContext.requireUser();
+        Order order = requireFamilyOrder(id);
+        if (!actor.getUuid().equals(order.getMakerUuid())) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_MAKER);
+        }
+        if (order.getStatus() == null || order.getStatus() != 0) {
+            throw new BusinessException(ErrorCode.ORDER_CANNOT_REJECT);
+        }
+        refundCustomer(order);
+        order.setStatus(-2);
+        order.setUpdateTime(LocalDateTime.now());
+        return orderMapper.updateById(order) > 0;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean finishOrder(Long id) {
         User actor = AuthContext.requireUser();
         Order order = requireFamilyOrder(id);
@@ -211,13 +228,17 @@ public class OrderServiceImpl implements OrderService {
         if (order.getStatus() == null || order.getStatus() != 0) {
             throw new BusinessException(ErrorCode.ORDER_CANNOT_CANCEL);
         }
+        refundCustomer(order);
+        order.setStatus(-1);
+        order.setUpdateTime(LocalDateTime.now());
+        return orderMapper.updateById(order) > 0;
+    }
+
+    private void refundCustomer(Order order) {
         LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(User::getUuid, order.getCustomerUuid())
                 .setSql("balance = balance + " + order.getTotalAmount());
         userMapper.update(null, updateWrapper);
-        order.setStatus(-1);
-        order.setUpdateTime(LocalDateTime.now());
-        return orderMapper.updateById(order) > 0;
     }
 
     private Order requireFamilyOrder(Long id) {
@@ -242,6 +263,7 @@ public class OrderServiceImpl implements OrderService {
         OrderVO orderVO = new OrderVO();
         BeanUtils.copyProperties(order, orderVO);
         switch (order.getStatus() == null ? 99 : order.getStatus()) {
+            case -2 -> orderVO.setStatusText("制作人已拒绝");
             case -1 -> orderVO.setStatusText("已取消");
             case 0 -> orderVO.setStatusText("待接单");
             case 1 -> orderVO.setStatusText("制作中");

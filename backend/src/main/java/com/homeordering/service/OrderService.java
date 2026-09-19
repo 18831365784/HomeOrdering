@@ -19,6 +19,8 @@ public interface OrderService {
 
     boolean acceptOrder(Long id);
 
+    boolean rejectOrder(Long id);
+
     boolean finishOrder(Long id);
 
     boolean cancelOrder(Long id);

@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS `order` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `order_no` VARCHAR(50) NOT NULL COMMENT '订单号',
   `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '订单总金额',
-  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态: -1已取消 0待接单 1制作中 2已完成',
+  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态: -2制作人已拒绝 -1已取消 0待接单 1制作中 2已完成',
   `remark` VARCHAR(500) DEFAULT NULL COMMENT '备注',
   `customer_uuid` VARCHAR(100) DEFAULT NULL COMMENT '下单人UUID',
   `customer_name` VARCHAR(50) DEFAULT NULL COMMENT '下单人昵称',

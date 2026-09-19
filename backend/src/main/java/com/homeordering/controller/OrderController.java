@@ -49,6 +49,12 @@ public class OrderController {
         return Result.success("接单成功");
     }
 
+    @PutMapping("/{id}/reject")
+    public Result<String> rejectOrder(@PathVariable Long id) {
+        orderService.rejectOrder(id);
+        return Result.success("已拒绝订单");
+    }
+
     @PutMapping("/{id}/finish")
     public Result<String> finishOrder(@PathVariable Long id) {
         orderService.finishOrder(id);

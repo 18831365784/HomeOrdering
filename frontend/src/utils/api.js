@@ -163,6 +163,9 @@ export const orderApi = {
   acceptOrder(id) {
     return request(`/order/${id}/accept`, { method: 'PUT' })
   },
+  rejectOrder(id) {
+    return request(`/order/${id}/reject`, { method: 'PUT' })
+  },
   finishOrder(id) {
     return request(`/order/${id}/finish`, { method: 'PUT' })
   },
