@@ -1,69 +1,76 @@
 <template>
-  <view class="container">
-    <view class="header">
-      <text class="title">分类管理</text>
-    </view>
-
-    <view class="category-list" 
-          @touchmove="onDragMove($event)" 
-          @touchend="onDragEnd($event)">
-      <view class="category-item card" 
-            v-for="(c, index) in categories" 
-            :key="c.id"
-            :class="{ 'dragging': dragStartIndex === index, 'drag-over': dragOverIndex === index }">
-        <view class="sort-handle" 
-              @touchstart.stop="onDragStart($event, index)">
-          <text class="sort-icon">⋮⋮</text>
+  <view class="page">
+    <view
+      class="list"
+      @touchmove="onDragMove($event)"
+      @touchend="onDragEnd($event)"
+    >
+      <view
+        class="row"
+        v-for="(c, index) in categories"
+        :key="c.id"
+        :class="{ dragging: dragStartIndex === index, 'drag-over': dragOverIndex === index }"
+      >
+        <view class="sort-handle" @touchstart.stop="onDragStart($event, index)">
+          <AppIcon name="drag" :size="28" color="#9A9086" />
         </view>
-        <SafeImage v-if="c.iconUrl" :src="c.iconUrl" mode="aspectFit" imgClass="icon" />
-        <view v-else class="icon placeholder-image">无</view>
+        <SafeImage v-if="c.iconUrl" :src="c.iconUrl" mode="aspectFill" imgClass="icon" />
+        <view v-else class="icon placeholder">
+          <AppIcon name="tag" :size="28" color="#D4C9BC" />
+        </view>
         <view class="info">
           <text class="name">{{ c.name }}</text>
           <text class="status" :class="{ on: c.status === 1 }">{{ c.status === 1 ? '上架' : '下架' }}</text>
         </view>
         <view class="actions">
-          <button class="action-btn toggle-btn" :class="{ 'btn-on': c.status === 1 }" @click="toggle(c)">
-            {{ c.status === 1 ? '下架' : '上架' }}
-          </button>
-          <button class="action-btn edit-btn" @click="edit(c)">编辑</button>
+          <button
+            class="btn btn-sm"
+            :class="c.status === 1 ? 'btn-ghost' : 'btn-secondary'"
+            @click="toggle(c)"
+          >{{ c.status === 1 ? '下架' : '上架' }}</button>
+          <button class="btn btn-sm btn-primary" @click="edit(c)">编辑</button>
         </view>
       </view>
+      <EmptyState v-if="categories.length === 0" icon="tag" text="暂无分类" />
     </view>
 
-    <!-- 编辑/新增弹窗 -->
-    <view v-if="showModal" class="modal-mask" @touchmove.stop>
-      <view class="modal-card card">
-        <view class="modal-title">{{ form.id ? '编辑分类' : '新增分类' }}</view>
-        <view class="modal-body">
-          <input class="modal-input" placeholder="分类名称" v-model="form.name" />
-          <view class="upload-row">
-            <button class="upload-btn" @click="chooseIcon">选择图标</button>
-            <text class="text-muted" v-if="!form.iconUrl">未选择</text>
-            <SafeImage v-else :src="form.iconUrl" mode="aspectFit" imgClass="icon-preview" />
-          </view>
-        </view>
-        <view class="modal-actions">
-          <button class="modal-btn cancel-btn" @click="close">取消</button>
-          <button class="modal-btn save-btn" @click="save">保存</button>
+    <view class="fab" @click="openCreate">
+      <AppIcon name="plus" :size="40" color="#FFFFFF" />
+    </view>
+
+    <AppModal
+      :show="showModal"
+      :title="form.id ? '编辑分类' : '新增分类'"
+      confirm-text="保存"
+      @update:show="showModal = $event"
+      @confirm="save"
+    >
+      <view class="field">
+        <text class="field-label">分类名称</text>
+        <input class="input" placeholder="请输入分类名称" v-model="form.name" />
+      </view>
+      <view class="field">
+        <text class="field-label">图标（选填）</text>
+        <view class="upload-row">
+          <button class="btn btn-sm btn-ghost" @click="chooseIcon">选择图标</button>
+          <text v-if="!form.iconUrl" class="text-muted">未选择</text>
+          <SafeImage v-else :src="form.iconUrl" mode="aspectFill" imgClass="preview" />
         </view>
       </view>
-    </view>
-
-    <!-- 右下角浮动新增按钮 -->
-    <view class="fab-button primary-bg" @click="openCreate">
-      <text class="fab-icon">＋</text>
-    </view>
+    </AppModal>
   </view>
-  
 </template>
 
 <script>
 import { categoryApi, fileApi } from '@/utils/api.js'
 import SafeImage from '@/components/SafeImage.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import AppModal from '@/components/AppModal.vue'
 import userManager from '@/utils/user.js'
 
 export default {
-  components: { SafeImage },
+  components: { SafeImage, AppIcon, EmptyState, AppModal },
   data() {
     return {
       categories: [],
@@ -82,33 +89,43 @@ export default {
     async load() {
       try {
         this.categories = await categoryApi.getList(null)
-        // 按sort字段排序
         this.categories.sort((a, b) => (a.sort || 0) - (b.sort || 0))
       } catch (e) { console.error(e) }
     },
-    openCreate() { this.form = { id: null, name: '', iconUrl: '', status: 1, sort: 0 }; this.showModal = true },
-    edit(c) { this.form = { ...c }; this.showModal = true },
-    close() { this.showModal = false },
+    openCreate() {
+      this.form = { id: null, name: '', iconUrl: '', status: 1, sort: 0 }
+      this.showModal = true
+    },
+    edit(c) {
+      this.form = { ...c }
+      this.showModal = true
+    },
     async toggle(c) {
       try {
         await categoryApi.update({ id: c.id, status: c.status === 1 ? 0 : 1 })
         this.load()
-        // 通知首页刷新数据
         uni.$emit('categoryUpdated')
       } catch (e) {}
     },
     chooseIcon() {
-      uni.chooseImage({ count: 1, success: async (res) => {
-        try { this.form.iconUrl = await fileApi.uploadIcon(res.tempFilePaths[0]) } catch (e) {}
-      }})
+      uni.chooseImage({
+        count: 1,
+        success: async (res) => {
+          try {
+            this.form.iconUrl = await fileApi.uploadIcon(res.tempFilePaths[0])
+          } catch (e) {}
+        }
+      })
     },
     async save() {
-      if (!this.form.name) { uni.showToast({ title: '请填写分类名称', icon: 'none' }); return }
+      if (!this.form.name) {
+        uni.showToast({ title: '请填写分类名称', icon: 'none' })
+        return
+      }
       try {
         if (this.form.id) {
           await categoryApi.update(this.form)
         } else {
-          // 新增时设置sort为当前最大sort+1
           const maxSort = Math.max(...this.categories.map(c => c.sort || 0), 0)
           this.form.sort = maxSort + 1
           await categoryApi.add(this.form)
@@ -116,83 +133,45 @@ export default {
         uni.showToast({ title: '已保存', icon: 'success' })
         this.showModal = false
         this.load()
-        // 通知首页刷新数据
         uni.$emit('categoryUpdated')
       } catch (e) {}
     },
-    
-    // 拖拽排序相关方法
     onDragStart(e, index) {
-      console.log('拖拽开始', index)
       this.dragStartIndex = index
       this.isDragging = true
-      // 不阻止默认行为，让触摸事件正常工作
     },
-    
     onDragMove(e) {
       if (!this.isDragging) return
-      
-      // 获取触摸位置
       const touch = e.touches[0]
       if (!touch) return
-      
-      // 计算当前触摸位置对应的分类索引
-      const touchY = touch.clientY
-      const categoryHeight = 120 // 每个分类项的大概高度（rpx转px约60px）
-      const index = Math.floor(touchY / categoryHeight)
-      
-      // 限制索引范围
-      const validIndex = Math.max(0, Math.min(index, this.categories.length - 1))
-      
-      console.log('拖拽移动', 'touchY:', touchY, '计算索引:', validIndex, '当前dragOverIndex:', this.dragOverIndex)
-      
-      if (validIndex !== this.dragOverIndex) {
-        this.dragOverIndex = validIndex
-      }
+      const index = Math.floor(touch.clientY / 60)
+      this.dragOverIndex = Math.max(0, Math.min(index, this.categories.length - 1))
     },
-    
-    async onDragEnd(e) {
+    async onDragEnd() {
       if (!this.isDragging) return
-      console.log('拖拽结束', '从', this.dragStartIndex, '到', this.dragOverIndex)
-      
-      // 如果拖拽目标有效且与起始位置不同，执行排序
       if (this.dragOverIndex !== -1 && this.dragStartIndex !== this.dragOverIndex) {
-        console.log('执行排序：从', this.dragStartIndex, '到', this.dragOverIndex)
         await this.reorderCategories(this.dragStartIndex, this.dragOverIndex)
-      } else {
-        console.log('不执行排序：dragOverIndex=', this.dragOverIndex, 'dragStartIndex=', this.dragStartIndex)
       }
-      
-      // 重置状态
       this.dragStartIndex = -1
       this.dragOverIndex = -1
       this.isDragging = false
     },
-    
     async reorderCategories(fromIndex, toIndex) {
       try {
-        // 移动数组元素
         const item = this.categories.splice(fromIndex, 1)[0]
         this.categories.splice(toIndex, 0, item)
-        
-        // 重新计算sort值
         this.categories.forEach((category, index) => {
           category.sort = index + 1
         })
-        
-        // 批量更新后端
-        const updatePromises = this.categories.map(category =>
-          categoryApi.update({ id: category.id, sort: category.sort })
+        await Promise.all(
+          this.categories.map(category =>
+            categoryApi.update({ id: category.id, sort: category.sort })
+          )
         )
-        
-        await Promise.all(updatePromises)
         uni.showToast({ title: '排序已保存', icon: 'success' })
-        // 通知首页刷新数据
         uni.$emit('categoryUpdated')
       } catch (error) {
-        console.error('排序失败:', error)
         uni.showToast({ title: '排序失败', icon: 'none' })
-        // 重新加载数据
         this.load()
       }
     }
@@ -201,41 +180,117 @@ export default {
 </script>
 
 <style scoped>
-.container { min-height: 100vh; padding: 20rpx; }
-.header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20rpx; }
-.title { font-size: 32rpx; color:#2E2A27; font-weight: bold; }
-.category-list { display:flex; flex-direction: column; gap: 20rpx; }
-.category-item { display:flex; align-items:center; gap: 16rpx; border-radius: 24rpx; box-shadow: 0 8rpx 24rpx rgba(123,91,68,0.06); padding: 20rpx; }
-.sort-handle { display:flex; align-items:center; justify-content:center; width: 40rpx; height: 40rpx; color: #A39A92; cursor: grab; touch-action: none; }
-.sort-icon { font-size: 24rpx; line-height: 1; }
-.dragging { opacity: 0.5; transform: scale(1.05); }
-.drag-over { border: 2rpx dashed #7B5B44; }
-.icon { width: 80rpx; height: 80rpx; border-radius: 12rpx; background:#EFE7DD; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
-:deep(.icon) { width: 80rpx; height: 80rpx; border-radius: 12rpx; }
-.info { flex:1; display:flex; flex-direction: column; gap: 8rpx; }
-.name { font-size: 30rpx; color:#2E2A27; font-weight: bold; }
-.status { font-size: 24rpx; color:#A39A92; }
-.status.on { color:#7BB662; }
-.actions { display:flex; gap: 8rpx; }
-.action-btn { padding: 3rpx 20rpx 0rpx; border-radius: 20rpx; font-size: 24rpx; border: none; min-width: 80rpx; }
-.toggle-btn { background: #F6F3EF; color: #6A625B; }
-.toggle-btn.btn-on { background: #7BB662; color: #fff; }
-.edit-btn { background: #7B5B44; color: #fff; }
-.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:2000; }
-.modal-card { width: 640rpx; }
-.modal-title { font-size: 32rpx; font-weight: bold; color:#2E2A27; margin-bottom: 20rpx; }
-.modal-body { display:flex; flex-direction: column; gap: 20rpx; }
-.modal-input { background:#F6F3EF; border-radius: 16rpx; padding: 20rpx; font-size: 28rpx; }
-.upload-row { display:flex; align-items:center; gap: 16rpx; }
-.upload-btn { padding: 12rpx 20rpx; border-radius: 20rpx; font-size: 24rpx; background: #F6F3EF; color: #6A625B; border: none; }
-.icon-preview { width: 64rpx; height: 64rpx; border-radius: 12rpx; background:#EFE7DD; }
-:deep(.icon-preview) { width: 64rpx; height: 64rpx; border-radius: 12rpx; }
-.modal-actions { display:flex; gap: 16rpx; margin-top: 12rpx; }
-.modal-btn { padding: 16rpx 32rpx; border-radius: 24rpx; font-size: 28rpx; border: none; min-width: 120rpx; }
-.cancel-btn { background: #F6F3EF; color: #6A625B; }
-.save-btn { background: #7B5B44; color: #fff; }
-.fab-button { position: fixed; right: 40rpx; bottom: 120rpx; width: 100rpx; height: 100rpx; border-radius: 50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 10rpx 28rpx rgba(123,91,68,0.30); z-index: 1500; }
-.fab-icon { color:#fff; font-size: 60rpx; font-weight: bold; }
+.page {
+  min-height: 100%;
+  background: #F7F3EE;
+  padding: 24rpx 24rpx 180rpx;
+  box-sizing: border-box;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(42, 36, 32, 0.05);
+}
+
+.dragging { opacity: 0.55; }
+.drag-over { border: 2rpx dashed #B85C38; }
+
+.sort-handle {
+  width: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.icon) {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+}
+
+.placeholder {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 12rpx;
+  background: #F7F3EE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2A2420;
+}
+
+.status {
+  font-size: 22rpx;
+  color: #9A9086;
+}
+
+.status.on {
+  color: #5C6B5A;
+}
+
+.actions {
+  display: flex;
+  gap: 10rpx;
+}
+
+.fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: calc(48rpx + env(safe-area-inset-bottom));
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 28rpx;
+  background: #B85C38;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(184, 92, 56, 0.35);
+  z-index: 100;
+}
+
+.field {
+  margin-bottom: 32rpx;
+}
+
+.field-label {
+  display: block;
+  font-size: 24rpx;
+  color: #9A9086;
+  margin-bottom: 12rpx;
+}
+
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+:deep(.preview) {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 12rpx;
+}
 </style>
-
-

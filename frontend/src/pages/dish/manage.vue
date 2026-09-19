@@ -1,9 +1,5 @@
 <template>
   <view class="container">
-    <view class="header">
-      <text class="title">菜品管理</text>
-    </view>
-
     <view class="dish-list" 
           @touchmove="onDragMove($event)" 
           @touchend="onDragEnd($event)">
@@ -13,10 +9,12 @@
             :class="{ 'dragging': dragStartIndex === index, 'drag-over': dragOverIndex === index }">
         <view class="sort-handle" 
               @touchstart.stop="onDragStart($event, index)">
-          <text class="sort-icon">⋮⋮</text>
+          <AppIcon name="drag" :size="28" color="#9A9086" />
         </view>
-        <SafeImage v-if="dish.imageUrl" :src="dish.imageUrl" mode="aspectFit" imgClass="dish-image" />
-        <view v-else class="dish-image placeholder-image">无</view>
+        <SafeImage v-if="dish.imageUrl" :src="dish.imageUrl" mode="aspectFill" imgClass="dish-image" />
+        <view v-else class="dish-image placeholder-image">
+          <AppIcon name="dish" :size="28" color="#D4C9BC" />
+        </view>
         <view class="info">
           <text class="name">{{ dish.name }}</text>
           <text class="price">¥{{ dish.price }}</text>
@@ -32,143 +30,147 @@
     </view>
 
     <!-- 编辑/新增弹窗 -->
-    <view v-if="showModal" class="modal-mask" @touchmove.stop.prevent>
-      <view class="modal-card card" @touchmove.stop>
-        <view class="modal-title">{{ form.id ? '编辑菜品' : '新增菜品' }}</view>
-        <scroll-view class="modal-body" scroll-y="true" enable-back-to-top="true">
-          <input class="modal-input" placeholder="菜品名称" v-model="form.name" />
-          <input class="modal-input" placeholder="菜品价格" v-model="form.price" type="number" />
-          <input class="modal-input" placeholder="菜品描述" v-model="form.description" />
-          <view class="upload-row">
-            <button class="upload-btn" @click="chooseImage">选择图片</button>
-            <text class="text-muted" v-if="!form.imageUrl">未选择</text>
-            <SafeImage v-else :src="form.imageUrl" mode="aspectFit" imgClass="image-preview" />
+    <view v-if="showModal" class="modal-mask" @touchmove.stop.prevent @click="close">
+      <view class="modal-card" @click.stop @touchmove.stop>
+        <view class="modal-head">
+          <view class="modal-head-text">
+            <text class="modal-title">{{ form.id ? '编辑菜品' : '新增菜品' }}</text>
+            <text class="modal-sub">填写基本信息与可选规格</text>
           </view>
-          <view class="category-select">
-            <text class="label">分类：</text>
-            <picker @change="onCategoryChange" :value="categoryIndex" :range="categoryNames">
-              <view class="picker-text">{{ selectedCategoryName }}</view>
-            </picker>
+          <view class="modal-close" @click="close">
+            <AppIcon name="close" :size="28" color="#9A9086" />
           </view>
-          
-          <!-- 扩展项设置（仅可视化） -->
-          <view class="extensions-editor">
-            <view class="editor-header">
-              <text class="editor-title">扩展选项配置</text>
-              <button class="add-option-btn" @click="addOption">
-                <text class="btn-icon">＋</text>
-                <text class="btn-text">添加选项</text>
-              </button>
+        </view>
+
+        <scroll-view class="modal-body" scroll-y="true" :show-scrollbar="false">
+          <view class="form-section">
+            <text class="section-cap">基本信息</text>
+            <view class="field">
+              <text class="field-label">菜品名称</text>
+              <input class="modal-input" placeholder="请输入名称" v-model="form.name" />
             </view>
-            
-            <view v-if="vizOptions.length===0" class="empty-state">
-              <text class="empty-icon">📝</text>
+            <view class="field-row">
+              <view class="field half">
+                <text class="field-label">价格（元）</text>
+                <input class="modal-input" placeholder="0.00" v-model="form.price" type="digit" />
+              </view>
+              <view class="field half">
+                <text class="field-label">分类</text>
+                <picker @change="onCategoryChange" :value="categoryIndex" :range="categoryNames">
+                  <view class="picker-text">{{ selectedCategoryName }}</view>
+                </picker>
+              </view>
+            </view>
+            <view class="field">
+              <text class="field-label">简介</text>
+              <input class="modal-input" placeholder="口味、做法等（选填）" v-model="form.description" />
+            </view>
+            <view class="field">
+              <text class="field-label">图片</text>
+              <view class="upload-row">
+                <view class="upload-box" @click="chooseImage">
+                  <SafeImage v-if="form.imageUrl" :src="form.imageUrl" mode="aspectFill" imgClass="image-preview" />
+                  <view v-else class="upload-placeholder">
+                    <AppIcon name="plus" :size="36" color="#B85C38" />
+                    <text class="upload-tip">添加图片</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="form-section">
+            <view class="section-cap-row">
+              <text class="section-cap">扩展选项</text>
+              <text class="section-link" @click="addOption">＋ 添加选项</text>
+            </view>
+            <text class="section-hint">用于辣度、份量等规格，可不填</text>
+
+            <view v-if="vizOptions.length === 0" class="empty-ext">
               <text class="empty-text">暂无扩展选项</text>
-              <text class="empty-desc">点击上方"添加选项"开始配置</text>
             </view>
-            
-            <view v-for="(opt, oi) in vizOptions" :key="opt.__uid" class="option-card">
-              <!-- 选项头部 -->
-              <view class="option-header">
-                <view class="option-title-row">
-                  <input class="option-name-input" placeholder="选项名称(如：辣度)" v-model="opt.name" />
-                  <view class="option-type-picker">
-                    <picker :range="selectionTypeLabels" :value="selectionTypes.indexOf(opt.selectionType)" @change="e=>changeType(oi, e.detail.value)">
-                      <view class="type-picker-text">{{ getSelectionTypeLabel(opt.selectionType) }}</view>
-                    </picker>
-                  </view>
-                </view>
-                <view class="option-required">
-                  <label class="required-switch">
-                    <switch :checked="!!opt.required" @change="e=>opt.required=e.detail.value" />
-                    <text class="required-label">必填</text>
-                  </label>
-                </view>
-              </view>
-              
-              <!-- 选项配置 -->
-              <view class="option-config">
-                <view v-if="opt.selectionType==='multiple'" class="config-row">
-                  <view class="config-item">
-                    <text class="config-label">最少选择</text>
-                    <input class="config-input" type="number" placeholder="0" v-model.number="opt.min" />
-                  </view>
-                  <view class="config-item">
-                    <text class="config-label">最多选择</text>
-                    <input class="config-input" type="number" placeholder="无限制" v-model.number="opt.max" />
-                  </view>
-                </view>
-                
-                <view v-if="opt.selectionType==='input'" class="config-row">
-                  <view class="config-item full-width">
-                    <text class="config-label">占位提示</text>
-                    <input class="config-input" placeholder="请输入..." v-model="opt.placeholder" />
-                  </view>
-                </view>
-                
-                <view v-if="opt.selectionType==='number'" class="config-row">
-                  <view class="config-item">
-                    <text class="config-label">单位</text>
-                    <input class="config-input" placeholder="杯/份" v-model="opt.unit" />
-                  </view>
-                  <view class="config-item">
-                    <text class="config-label">占位提示</text>
-                    <input class="config-input" placeholder="请输入数字" v-model="opt.placeholder" />
-                  </view>
+
+            <view v-for="(opt, oi) in vizOptions" :key="opt.__uid" class="opt-block">
+              <view class="opt-top">
+                <text class="opt-index">选项 {{ oi + 1 }}</text>
+                <view class="opt-tools">
+                  <text
+                    class="tool-link"
+                    :class="{ disabled: oi === 0 }"
+                    @click="moveOptionSafe(oi, -1)"
+                  >上移</text>
+                  <text
+                    class="tool-link"
+                    :class="{ disabled: oi === vizOptions.length - 1 }"
+                    @click="moveOptionSafe(oi, 1)"
+                  >下移</text>
+                  <text class="tool-link danger" @click="removeOption(oi)">删除</text>
                 </view>
               </view>
-              
-              <!-- 选择项配置 -->
-              <view v-if="opt.selectionType==='single' || opt.selectionType==='multiple'" class="choices-section">
-                <view class="choices-header">
+
+              <input class="modal-input" placeholder="选项名称，如：辣度" v-model="opt.name" />
+
+              <view class="opt-meta">
+                <picker
+                  :range="selectionTypeLabels"
+                  :value="selectionTypes.indexOf(opt.selectionType)"
+                  @change="e => changeType(oi, e.detail.value)"
+                >
+                  <view class="type-chip">{{ getSelectionTypeLabel(opt.selectionType) }} ▾</view>
+                </picker>
+                <view class="req-row" @click="toggleRequired(oi)">
+                  <view class="req-check" :class="{ on: !!opt.required }"></view>
+                  <text class="req-label">必填</text>
+                </view>
+              </view>
+
+              <view v-if="opt.selectionType === 'multiple'" class="config-row">
+                <view class="config-item">
+                  <text class="config-label">最少</text>
+                  <input class="config-input" type="number" placeholder="0" v-model.number="opt.min" />
+                </view>
+                <view class="config-item">
+                  <text class="config-label">最多</text>
+                  <input class="config-input" type="number" placeholder="不限" v-model.number="opt.max" />
+                </view>
+              </view>
+
+              <view v-if="opt.selectionType === 'input'" class="field tight">
+                <text class="field-label">占位提示</text>
+                <input class="modal-input" placeholder="请输入..." v-model="opt.placeholder" />
+              </view>
+
+              <view v-if="opt.selectionType === 'number'" class="config-row">
+                <view class="config-item">
+                  <text class="config-label">单位</text>
+                  <input class="config-input" placeholder="杯/份" v-model="opt.unit" />
+                </view>
+                <view class="config-item">
+                  <text class="config-label">提示</text>
+                  <input class="config-input" placeholder="请输入" v-model="opt.placeholder" />
+                </view>
+              </view>
+
+              <view v-if="opt.selectionType === 'single' || opt.selectionType === 'multiple'" class="choices-wrap">
+                <view class="choices-head">
                   <text class="choices-title">选择项</text>
-                  <button class="add-choice-btn" @click="addChoice(oi)">
-                    <text class="btn-icon">＋</text>
-                    <text class="btn-text">添加选择项</text>
-                  </button>
+                  <text class="section-link" @click="addChoice(oi)">＋ 添加</text>
                 </view>
-                
-                <view v-if="!Array.isArray(opt.choices) || opt.choices.length===0" class="choices-empty">
-                  <text class="empty-text">暂无选择项</text>
+                <view v-if="!opt.choices || opt.choices.length === 0" class="choices-empty">
+                  <text class="empty-text">还没有选择项</text>
                 </view>
-                
-                <view v-for="(c, ci) in (opt.choices||[])" :key="c.__uid" class="choice-item">
-                  <view class="choice-content">
-                    <input class="choice-name-input" placeholder="选择项名称" v-model="c.name" />
-                    <input class="choice-price-input" type="number" placeholder="加价" v-model.number="c.price" />
-                  </view>
-                  <view class="choice-actions">
-                    <button class="action-btn move-up" @click="moveChoice(oi, ci, -1)" :disabled="ci === 0">
-                      <text>↑</text>
-                    </button>
-                    <button class="action-btn move-down" @click="moveChoice(oi, ci, 1)" :disabled="ci === opt.choices.length - 1">
-                      <text>↓</text>
-                    </button>
-                    <button class="action-btn delete" @click="removeChoice(oi, ci)">
-                      <text>×</text>
-                    </button>
+                <view v-for="(c, ci) in (opt.choices || [])" :key="c.__uid" class="choice-row">
+                  <input class="choice-name" placeholder="名称" v-model="c.name" />
+                  <input class="choice-price" type="digit" placeholder="加价" v-model.number="c.price" />
+                  <view class="choice-del" @click="removeChoice(oi, ci)">
+                    <AppIcon name="close" :size="22" color="#B33A2B" />
                   </view>
                 </view>
-              </view>
-              
-              <!-- 选项操作 -->
-              <view class="option-actions">
-                <button class="action-btn move-up" @click="moveOption(oi, -1)" :disabled="oi === 0">
-                  <text>↑</text>
-                  <text class="btn-text">上移</text>
-                </button>
-                <button class="action-btn move-down" @click="moveOption(oi, 1)" :disabled="oi === vizOptions.length - 1">
-                  <text>↓</text>
-                  <text class="btn-text">下移</text>
-                </button>
-                <button class="action-btn delete" @click="removeOption(oi)">
-                  <text>×</text>
-                  <text class="btn-text">删除</text>
-                </button>
               </view>
             </view>
           </view>
         </scroll-view>
+
         <view class="modal-actions">
           <button class="modal-btn cancel-btn" @click="close">取消</button>
           <button class="modal-btn save-btn" @click="save">保存</button>
@@ -176,9 +178,8 @@
       </view>
     </view>
 
-    <!-- 右下角浮动新增按钮 -->
-    <view class="fab-button primary-bg" @click="openCreate">
-      <text class="fab-icon">＋</text>
+    <view class="fab-button" @click="openCreate">
+      <AppIcon name="plus" :size="40" color="#FFFFFF" />
     </view>
   </view>
   
@@ -187,10 +188,11 @@
 <script>
 import { dishApi, categoryApi, fileApi } from '@/utils/api.js'
 import SafeImage from '@/components/SafeImage.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import userManager from '@/utils/user.js'
 
 export default {
-  components: { SafeImage },
+  components: { SafeImage, AppIcon },
   data() {
     return {
       dishes: [],
@@ -289,6 +291,14 @@ export default {
       if (ni < 0 || ni >= this.vizOptions.length) return
       const item = this.vizOptions.splice(oi, 1)[0]
       this.vizOptions.splice(ni, 0, item)
+    },
+    moveOptionSafe(oi, delta) {
+      this.moveOption(oi, delta)
+    },
+    toggleRequired(oi) {
+      const opt = this.vizOptions[oi]
+      if (!opt) return
+      opt.required = !opt.required
     },
     addChoice(oi) {
       const opt = this.vizOptions[oi]
@@ -490,428 +500,437 @@ export default {
 </script>
 
 <style scoped>
-.container { min-height: 100vh; padding: 20rpx; }
-.header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20rpx; }
-.title { font-size: 32rpx; color:#2E2A27; font-weight: bold; }
-.dish-list { display:flex; flex-direction: column; gap: 20rpx; }
-.dish-item { display:flex; align-items:center; gap: 16rpx; border-radius: 24rpx; box-shadow: 0 8rpx 24rpx rgba(123,91,68,0.06); padding: 20rpx; }
-.sort-handle { display:flex; align-items:center; justify-content:center; width: 40rpx; height: 40rpx; color: #A39A92; cursor: grab; touch-action: none; }
-.sort-icon { font-size: 24rpx; line-height: 1; }
-.dragging { opacity: 0.5; transform: scale(1.05); }
-.drag-over { border: 2rpx dashed #7B5B44; }
-.dish-image { width: 80rpx; height: 80rpx; border-radius: 12rpx; background:#EFE7DD; display:flex; align-items:center; justify-content:center; flex-shrink: 0; }
+.container {
+  min-height: 100%;
+  padding: 24rpx 24rpx 180rpx;
+  background: #F7F3EE;
+  box-sizing: border-box;
+}
+.dish-list { display: flex; flex-direction: column; gap: 16rpx; }
+.dish-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  border-radius: 20rpx;
+  background: #FFFFFF;
+  box-shadow: 0 4rpx 20rpx rgba(42, 36, 32, 0.05);
+  padding: 20rpx;
+}
+.sort-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+}
+.dragging { opacity: 0.55; }
+.drag-over { border: 2rpx dashed #B85C38; }
+.dish-image {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 12rpx;
+  background: #F7F3EE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 :deep(.dish-image) { width: 80rpx; height: 80rpx; border-radius: 12rpx; }
-.info { flex:1; display:flex; flex-direction: column; gap: 8rpx; }
-.name { font-size: 30rpx; color:#2E2A27; font-weight: bold; }
-.price { font-size: 28rpx; color:#7B5B44; font-weight: bold; }
-.status { font-size: 24rpx; color:#A39A92; }
-.status.on { color:#7BB662; }
-.actions { display:flex; gap: 8rpx; }
-.action-btn { padding: 3rpx 20rpx 0rpx; border-radius: 20rpx; font-size: 24rpx; border: none; min-width: 80rpx; }
-.toggle-btn { background: #F6F3EF; color: #6A625B; }
-.toggle-btn.btn-on { background: #7BB662; color: #fff; }
-.edit-btn { background: #7B5B44; color: #fff; }
-.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:2000; }
-.modal-card { width: 640rpx; max-height: 85vh; display: flex; flex-direction: column; background: #fff; border-radius: 24rpx; overflow: hidden; }
-.modal-title { font-size: 32rpx; font-weight: bold; color:#2E2A27; margin: 20rpx 20rpx 0 20rpx; flex-shrink: 0; }
-.modal-body { 
-  /* 设定固定高度以启用 scroll-view 原生滚动（小程序需要明确高度） */
-  height: 60vh;
-  padding: 20rpx; 
-  display: flex; 
-  flex-direction: column; 
-  overflow: hidden; /* 避免与 scroll-view 双重滚动冲突 */
+.info { flex: 1; display: flex; flex-direction: column; gap: 6rpx; min-width: 0; }
+.name { font-size: 28rpx; color: #2A2420; font-weight: 600; }
+.price { font-size: 26rpx; color: #B85C38; font-weight: 700; }
+.status { font-size: 22rpx; color: #9A9086; }
+.status.on { color: #5C6B5A; }
+.actions { display: flex; gap: 8rpx; }
+.action-btn {
+  padding: 8rpx 18rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  border: none;
+  min-width: 80rpx;
+  margin: 0;
+  line-height: 1.4;
 }
-.modal-actions { display:flex; gap: 16rpx; margin: 0 20rpx 20rpx 20rpx; flex-shrink: 0; }
-.modal-input { 
-  background: #F6F3EF; 
-  border: 2rpx solid #E2D8CC;
-  border-radius: 16rpx; 
-  padding: 20rpx; 
-  font-size: 28rpx; 
-  color: #2E2A27;
-  transition: all 0.2s ease;
+.action-btn::after { border: none; }
+.toggle-btn { background: #F7F3EE; color: #6B6158; }
+.toggle-btn.btn-on { background: #5C6B5A; color: #fff; }
+.edit-btn { background: #B85C38; color: #fff; }
+.modal-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  padding-top: 200rpx;
+  background: rgba(42, 36, 32, 0.48);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  z-index: 2000;
+  box-sizing: border-box;
+}
+.modal-card {
+  width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF;
+  border-radius: 28rpx 28rpx 0 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 36rpx 36rpx 28rpx;
+  border-bottom: 1rpx solid #E8E0D6;
+  flex-shrink: 0;
+}
+.modal-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.modal-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #2A2420;
+  line-height: 1.3;
+}
+.modal-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #9A9086;
+}
+.modal-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #F7F3EE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.modal-body {
+  flex: 1;
+  height: 0;
+  padding: 28rpx 36rpx 40rpx;
+  box-sizing: border-box;
+}
+.modal-actions {
+  display: flex;
+  gap: 20rpx;
+  padding: 20rpx 36rpx calc(28rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #E8E0D6;
+  flex-shrink: 0;
+  background: #FFFFFF;
+}
+.form-section {
+  margin-bottom: 40rpx;
+}
+.form-section:last-child {
+  margin-bottom: 0;
+}
+.section-cap {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #2A2420;
+  margin-bottom: 20rpx;
+  letter-spacing: 1rpx;
+}
+.section-cap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+.section-cap-row .section-cap {
+  margin-bottom: 0;
+}
+.section-link {
+  font-size: 26rpx;
+  color: #B85C38;
+  font-weight: 500;
+}
+.section-hint {
+  display: block;
+  font-size: 22rpx;
+  color: #9A9086;
+  margin-bottom: 20rpx;
+}
+.field {
+  margin-bottom: 24rpx;
+}
+.field.tight {
+  margin-top: 16rpx;
+  margin-bottom: 0;
+}
+.field.half {
+  flex: 1;
+  margin-bottom: 0;
+}
+.field-row {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+.field-label {
+  display: block;
+  font-size: 24rpx;
+  color: #9A9086;
   margin-bottom: 12rpx;
 }
-
+.modal-input {
+  background: #F7F3EE;
+  border: 2rpx solid #E8E0D6;
+  border-radius: 16rpx;
+  height: 88rpx;
+  min-height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 28rpx;
+  font-size: 28rpx;
+  color: #2A2420;
+  width: 100%;
+  box-sizing: border-box;
+}
 .modal-input:focus {
-  border-color: #7B5B44;
-  background: #ffffff;
-  box-shadow: 0 0 0 4rpx rgba(123, 91, 68, 0.1);
+  border-color: #B85C38;
+  background: #FFFFFF;
 }
-
-.upload-row { 
-  display: flex; 
-  align-items: center; 
-  gap: 16rpx; 
-  margin-bottom: 12rpx;
+.upload-row {
+  display: flex;
+  align-items: center;
 }
-
-.upload-btn { 
-  padding: 0 24rpx; 
-  height: 60rpx;
-  border-radius: 16rpx; 
-  font-size: 26rpx; 
-  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
-  color: #fff; 
-  border: none; 
-  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.25);
-  transition: all 0.2s ease;
+.upload-box {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 16rpx;
+  background: #F7F3EE;
+  border: 2rpx dashed #D4C9BC;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.upload-btn:active {
-  transform: scale(0.98);
-  box-shadow: 0 2rpx 8rpx rgba(123, 91, 68, 0.35);
-}
-
-.image-preview { 
-  width: 80rpx; 
-  height: 80rpx; 
-  border-radius: 16rpx; 
-  background: #EFE7DD;
-  border: 2rpx solid #E2D8CC;
-  object-fit: cover;
-}
-:deep(.image-preview) { width: 80rpx; height: 80rpx; border-radius: 16rpx; }
-
-.category-select { 
-  display: flex; 
-  align-items: center; 
-  gap: 16rpx; 
-  margin-bottom: 12rpx;
-}
-
-.label { 
-  font-size: 28rpx; 
-  color: #2E2A27; 
-  font-weight: 500;
-}
-
-.picker-text { 
-  background: #F6F3EF; 
-  border: 2rpx solid #E2D8CC;
-  border-radius: 16rpx; 
-  padding: 20rpx; 
-  font-size: 28rpx; 
-  color: #2E2A27;
-  transition: all 0.2s ease;
-}
-
-.picker-text:active {
-  border-color: #7B5B44;
-  background: #ffffff;
-}
-.modal-btn { padding: 16rpx 32rpx; border-radius: 24rpx; font-size: 28rpx; border: none; min-width: 120rpx; }
-.cancel-btn { background: #F6F3EF; color: #6A625B; }
-.save-btn { background: #7B5B44; color: #fff; }
-.fab-button { position: fixed; right: 40rpx; bottom: 120rpx; width: 100rpx; height: 100rpx; border-radius: 50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 10rpx 28rpx rgba(123,91,68,0.30); z-index: 1500; }
-.fab-icon { color:#fff; font-size: 60rpx; font-weight: bold; }
-
-/* 扩展项编辑器样式 */
-.extensions-editor { 
-  margin-top: 24rpx; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 24rpx; 
-}
-
-.editor-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16rpx;
-  width: 100%;
-}
-
-.editor-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #2E2A27;
-}
-
-.add-option-btn {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  background: linear-gradient(135deg, #7B5B44 0%, #9F7A5A 100%);
-  color: #fff;
-  border: none;
-  border-radius: 20rpx;
-  padding: 0 20rpx;
-  height: 60rpx;
-  font-size: 26rpx;
-  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.25);
-  margin: 0;
-  flex-shrink: 0;
-}
-
-.btn-icon {
-  font-size: 28rpx;
-  font-weight: bold;
-}
-
-.btn-text {
-  font-size: 26rpx;
-}
-
-.empty-state {
+.upload-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60rpx 20rpx;
-  background: #F8F6F3;
+  gap: 8rpx;
+}
+.upload-tip {
+  font-size: 22rpx;
+  color: #B85C38;
+}
+:deep(.image-preview) {
+  width: 160rpx;
+  height: 160rpx;
+}
+.picker-text {
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 24rpx;
+  background: #F7F3EE;
+  border: 2rpx solid #E8E0D6;
   border-radius: 16rpx;
-  border: 2rpx dashed #E2D8CC;
-}
-
-.empty-icon {
-  font-size: 60rpx;
-  margin-bottom: 16rpx;
-}
-
-.empty-text {
-  font-size: 28rpx;
-  color: #6A625B;
-  font-weight: bold;
-  margin-bottom: 8rpx;
-}
-
-.empty-desc {
-  font-size: 24rpx;
-  color: #A39A92;
-}
-
-.option-card {
-  background: #ffffff;
-  border: 2rpx solid #E2D8CC;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-  box-shadow: 0 4rpx 12rpx rgba(123, 91, 68, 0.06);
-}
-
-.option-header {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.option-title-row {
-  display: flex;
-  gap: 16rpx;
-  align-items: center;
-}
-
-.option-name-input {
-  flex: 1;
-  background: #F6F3EF;
-  border: 2rpx solid #E2D8CC;
-  border-radius: 12rpx;
-  padding: 16rpx 20rpx;
-  font-size: 28rpx;
-  color: #2E2A27;
-}
-
-.option-type-picker {
-  min-width: 160rpx;
-}
-
-.type-picker-text {
-  background: #F6F3EF;
-  border: 2rpx solid #E2D8CC;
-  border-radius: 12rpx;
-  padding: 16rpx 20rpx;
+  color: #B85C38;
   font-size: 26rpx;
-  color: #2E2A27;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.empty-ext {
+  padding: 36rpx 20rpx;
   text-align: center;
+  background: #F7F3EE;
+  border-radius: 16rpx;
 }
-
-.option-required {
-  display: flex;
-  justify-content: flex-end;
+.empty-text {
+  font-size: 26rpx;
+  color: #9A9086;
 }
-
-.required-switch {
+.opt-block {
+  background: #F7F3EE;
+  border-radius: 20rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+.opt-top {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
 }
-
-.required-switch switch {
-  transform: scale(0.8);
+.opt-index {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #2A2420;
 }
-
-.required-label {
-  font-size: 24rpx;
-  color: #6A625B;
-  font-weight: 500;
-}
-
-.option-config {
+.opt-tools {
   display: flex;
-  flex-direction: column;
-  gap: 16rpx;
+  align-items: center;
+  gap: 24rpx;
 }
-
+.tool-link {
+  font-size: 24rpx;
+  color: #6B6158;
+}
+.tool-link.danger {
+  color: #B33A2B;
+}
+.tool-link.disabled {
+  color: #D4C9BC;
+}
+.opt-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16rpx;
+}
+.type-chip {
+  padding: 12rpx 20rpx;
+  background: #FFFFFF;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  color: #B85C38;
+  border: 2rpx solid rgba(184, 92, 56, 0.25);
+}
+.req-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 8rpx 0;
+}
+.req-check {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid #D4C9BC;
+  background: #FFFFFF;
+  box-sizing: border-box;
+}
+.req-check.on {
+  background: #B85C38;
+  border-color: #B85C38;
+}
+.req-label {
+  font-size: 26rpx;
+  color: #6B6158;
+}
 .config-row {
   display: flex;
   gap: 16rpx;
+  margin-top: 16rpx;
 }
-
-.config-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.config-item.full-width {
-  flex: 1;
-}
-
+.config-item { flex: 1; }
 .config-label {
-  font-size: 24rpx;
-  color: #6A625B;
-  font-weight: 500;
+  display: block;
+  font-size: 22rpx;
+  color: #9A9086;
+  margin-bottom: 8rpx;
 }
-
 .config-input {
-  background: #F6F3EF;
-  border: 2rpx solid #E2D8CC;
+  background: #FFFFFF;
+  border: 2rpx solid #E8E0D6;
   border-radius: 12rpx;
-  padding: 12rpx 16rpx;
-  font-size: 26rpx;
-  color: #2E2A27;
-}
-
-.choices-section {
-  background: #F8F6F3;
-  border-radius: 16rpx;
-  padding: 20rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.choices-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.choices-title {
-  font-size: 28rpx;
-  color: #2E2A27;
-  font-weight: bold;
-}
-
-.add-choice-btn {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  background: #7B5B44;
-  color: #fff;
-  border: none;
-  border-radius: 16rpx;
+  height: 72rpx;
+  min-height: 72rpx;
+  line-height: 72rpx;
   padding: 0 16rpx;
-  height: 48rpx;
+  font-size: 26rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+.choices-wrap {
+  margin-top: 24rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #E8E0D6;
+}
+.choices-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+.choices-title {
   font-size: 24rpx;
-  margin: 0;
+  font-weight: 600;
+  color: #6B6158;
+}
+.choices-empty {
+  padding: 16rpx 0;
+}
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+.choice-name {
+  flex: 1;
+  background: #FFFFFF;
+  border: 2rpx solid #E8E0D6;
+  border-radius: 12rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  padding: 0 16rpx;
+  font-size: 26rpx;
+  box-sizing: border-box;
+}
+.choice-price {
+  width: 140rpx;
+  background: #FFFFFF;
+  border: 2rpx solid #E8E0D6;
+  border-radius: 12rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  padding: 0 12rpx;
+  font-size: 26rpx;
+  box-sizing: border-box;
+  text-align: center;
+}
+.choice-del {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 12rpx;
+  background: rgba(179, 58, 43, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
-
-.choices-empty {
-  text-align: center;
-  padding: 20rpx;
-  color: #A39A92;
-  font-size: 24rpx;
-}
-
-.choice-item {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  background: #ffffff;
-  border-radius: 12rpx;
-  padding: 16rpx;
-  border: 1rpx solid #E2D8CC;
-}
-
-.choice-content {
+.modal-btn {
   flex: 1;
-  display: flex;
-  gap: 12rpx;
-}
-
-.choice-name-input {
-  flex: 1;
-  background: #F6F3EF;
-  border: 1rpx solid #E2D8CC;
-  border-radius: 8rpx;
-  padding: 12rpx 16rpx;
-  font-size: 26rpx;
-  color: #2E2A27;
-}
-
-.choice-price-input {
-  width: 120rpx;
-  background: #F6F3EF;
-  border: 1rpx solid #E2D8CC;
-  border-radius: 8rpx;
-  padding: 12rpx 16rpx;
-  font-size: 26rpx;
-  color: #2E2A27;
-  text-align: center;
-}
-
-.choice-actions {
-  display: flex;
-  gap: 6rpx;
-}
-
-.option-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #E2D8CC;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  padding: 8rpx 16rpx;
-  border-radius: 12rpx;
-  font-size: 24rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0;
+  border-radius: 16rpx;
+  font-size: 28rpx;
   border: none;
-  transition: all 0.2s ease;
+  margin: 0;
+  font-weight: 600;
 }
-
-.action-btn.move-up {
-  background: #E8F4FD;
-  color: #4A90E2;
-}
-
-.action-btn.move-down {
-  background: #E8F4FD;
-  color: #4A90E2;
-}
-
-.action-btn.delete {
-  background: #F7E9E9;
-  color: #B85C5C;
-}
-
-.action-btn:disabled {
-  opacity: 0.4;
-  background: #F0F0F0;
-  color: #999;
+.modal-btn::after { border: none; }
+.cancel-btn { background: #F7F3EE; color: #6B6158; }
+.save-btn { background: #B85C38; color: #fff; }
+.fab-button {
+  position: fixed;
+  right: 40rpx;
+  bottom: calc(48rpx + env(safe-area-inset-bottom));
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 28rpx;
+  background: #B85C38;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(184, 92, 56, 0.35);
+  z-index: 1500;
 }
 </style>

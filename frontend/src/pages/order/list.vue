@@ -1,126 +1,100 @@
 <template>
-  <view class="container">
-    <!-- Tab切换 -->
-    <view class="tab-bar">
+  <view class="page">
+    <view class="seg">
       <view
-        class="tab-item"
+        class="seg-item"
         :class="{ active: currentTab === 'my' }"
         @click="switchTab('my')"
-      >
-        我的点单
-      </view>
+      >我的点单</view>
       <view
-        class="tab-item"
+        class="seg-item"
         :class="{ active: currentTab === 'making' }"
         @click="switchTab('making')"
+      >我的制作</view>
+    </view>
+
+    <view v-if="currentTab === 'my'" class="list">
+      <view
+        class="order-card"
+        v-for="order in myOrders"
+        :key="order.id"
+        @click="goToDetail(order.id)"
       >
-        我的制作
-      </view>
-    </view>
-
-    <!-- 我的点单 -->
-    <view v-if="currentTab === 'my'" class="order-list">
-      <view v-if="myOrders.length > 0">
-        <view
-          class="order-item card"
-          v-for="order in myOrders"
-          :key="order.id"
-          @click="goToDetail(order.id)"
-        >
-          <view class="order-header">
-            <text class="order-no">订单号: {{ order.orderNo }}</text>
-            <view class="badge" :class="getBadgeClass(order.status)">
-              {{ order.statusText }}
-            </view>
-          </view>
-
-          <view class="order-dishes">
-            <view v-for="detail in order.details" :key="detail.id" class="dish-item">
-              <text class="dish-name">{{ detail.dishName }} x{{ detail.quantity }}</text>
-            </view>
-          </view>
-
-          <view class="order-footer">
-            <text class="order-time">{{ formatTime(order.createTime) }}</text>
-            <text class="order-total">合计: <text class="price">¥{{ order.totalAmount }}</text></text>
-          </view>
-
-          <view v-if="order.status === 0" class="order-actions">
-            <button class="btn btn-sm btn-danger" @click.stop="handleCancel(order)">取消</button>
-          </view>
+        <view class="head">
+          <text class="no">{{ order.orderNo }}</text>
+          <StatusBadge :status="order.status" />
+        </view>
+        <view class="dishes">
+          <text
+            v-for="detail in order.details"
+            :key="detail.id"
+            class="dish"
+          >{{ detail.dishName }} ×{{ detail.quantity }}</text>
+        </view>
+        <view class="foot">
+          <text class="time">{{ formatTime(order.createTime) }}</text>
+          <text class="amount">¥{{ order.totalAmount }}</text>
+        </view>
+        <view v-if="order.status === 0" class="actions" @click.stop>
+          <button class="btn btn-sm btn-danger-outline" @click="handleCancel(order)">取消</button>
         </view>
       </view>
-
-      <view v-else class="empty-state">
-        <text class="empty-icon">📋</text>
-        <text class="empty-text">暂无订单</text>
-      </view>
+      <EmptyState v-if="myOrders.length === 0" icon="order" text="暂无点单" />
     </view>
 
-    <!-- 我的制作 -->
-    <view v-if="currentTab === 'making'" class="order-list">
-      <view v-if="makingOrders.length > 0">
-        <view
-          class="order-item card"
-          v-for="order in makingOrders"
-          :key="order.id"
-          @click="goToDetail(order.id)"
-        >
-          <view class="order-header">
-            <text class="order-no">订单号: {{ order.orderNo }}</text>
-            <view class="badge" :class="getBadgeClass(order.status)">
-              {{ order.statusText }}
-            </view>
-          </view>
-
-          <view class="order-dishes">
-            <view class="customer-info">
-              <text class="customer-label">客户：</text>
-              <text class="customer-name">{{ order.customerName || '未知' }}</text>
-            </view>
-            <view v-for="detail in order.details" :key="detail.id" class="dish-item">
-              <text class="dish-name">{{ detail.dishName }} x{{ detail.quantity }}</text>
-            </view>
-          </view>
-
-          <view class="order-footer">
-            <text class="order-time">{{ formatTime(order.createTime) }}</text>
-            <text class="order-total">合计: <text class="price">¥{{ order.totalAmount }}</text></text>
-          </view>
-
-          <view class="order-actions">
-            <button
-              v-if="order.status === 0"
-              class="btn btn-sm btn-success"
-              @click.stop="handleAccept(order)"
-            >接单</button>
-            <button
-              v-if="order.status === 0"
-              class="btn btn-sm btn-danger"
-              @click.stop="handleReject(order)"
-            >拒绝</button>
-            <button
-              v-if="order.status === 1"
-              class="btn btn-sm btn-success"
-              @click.stop="handleFinish(order)"
-            >完成</button>
-          </view>
+    <view v-if="currentTab === 'making'" class="list">
+      <view
+        class="order-card"
+        v-for="order in makingOrders"
+        :key="order.id"
+        @click="goToDetail(order.id)"
+      >
+        <view class="head">
+          <text class="no">{{ order.orderNo }}</text>
+          <StatusBadge :status="order.status" />
+        </view>
+        <text class="customer">来自 {{ order.customerName || '未知' }}</text>
+        <view class="dishes">
+          <text
+            v-for="detail in order.details"
+            :key="detail.id"
+            class="dish"
+          >{{ detail.dishName }} ×{{ detail.quantity }}</text>
+        </view>
+        <view class="foot">
+          <text class="time">{{ formatTime(order.createTime) }}</text>
+          <text class="amount">¥{{ order.totalAmount }}</text>
+        </view>
+        <view class="actions" @click.stop>
+          <button
+            v-if="order.status === 0"
+            class="btn btn-sm btn-primary"
+            @click="handleAccept(order)"
+          >接单</button>
+          <button
+            v-if="order.status === 0"
+            class="btn btn-sm btn-danger-outline"
+            @click="handleReject(order)"
+          >拒绝</button>
+          <button
+            v-if="order.status === 1"
+            class="btn btn-sm btn-secondary"
+            @click="handleFinish(order)"
+          >完成</button>
         </view>
       </view>
-
-      <view v-else class="empty-state">
-        <text class="empty-icon">🍳</text>
-        <text class="empty-text">暂无制作订单</text>
-      </view>
+      <EmptyState v-if="makingOrders.length === 0" icon="dish" text="暂无制作订单" />
     </view>
   </view>
 </template>
 
 <script>
 import { orderApi } from '@/utils/api.js'
-import userManager from '@/utils/user.js'
+import StatusBadge from '@/components/StatusBadge.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 export default {
+  components: { StatusBadge, EmptyState },
   data() {
     return {
       currentTab: 'my',
@@ -146,8 +120,6 @@ export default {
     async loadOrders() {
       try {
         uni.showLoading({ title: '加载中...' })
-        const uuid = userManager.getUuid()
-
         if (this.currentTab === 'my') {
           this.myOrders = await orderApi.getMyOrders()
         } else {
@@ -160,28 +132,13 @@ export default {
       }
     },
 
-    getBadgeClass(status) {
-      const classMap = {
-        '-2': 'badge-gray',
-        '-1': 'badge-gray',
-        '0': 'badge-warning',
-        '1': 'badge-info',
-        '2': 'badge-success'
-      }
-      return classMap[status] || ''
-    },
-
     formatTime(timeStr) {
-      if (timeStr && timeStr.length >= 16) {
-        return timeStr.substring(0, 16)
-      }
+      if (timeStr && timeStr.length >= 16) return timeStr.substring(0, 16)
       return timeStr
     },
 
     goToDetail(orderId) {
-      uni.navigateTo({
-        url: `/pages/order/detail?id=${orderId}`
-      })
+      uni.navigateTo({ url: `/pages/order/detail?id=${orderId}` })
     },
 
     async handleAccept(order) {
@@ -244,182 +201,104 @@ export default {
 </script>
 
 <style scoped>
-.container {
-  min-height: 100vh;
-  background-color: #FAFAFA;
-  padding-top: constant(safe-area-inset-top);
-  padding-top: env(safe-area-inset-top);
+.page {
+  min-height: 100%;
+  background: #F7F3EE;
+  box-sizing: border-box;
 }
 
-/* Tab栏 */
-.tab-bar {
+.seg {
   display: flex;
-  background: #FFFFFF;
-  padding: 0 32rpx;
-  border-bottom: 1rpx solid #F5F5F5;
+  margin: 16rpx 24rpx 20rpx;
+  padding: 6rpx;
+  background: #EFE8DF;
+  border-radius: 14rpx;
 }
 
-.tab-item {
+.seg-item {
   flex: 1;
   text-align: center;
-  padding: 24rpx 0;
+  padding: 18rpx 0;
   font-size: 28rpx;
-  color: #9E9E9E;
-  position: relative;
-  transition: all 0.25s ease;
+  color: #9A9086;
+  border-radius: 10rpx;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
-.tab-item.active {
-  color: #FF6B6B;
+.seg-item.active {
+  background: #FFFFFF;
+  color: #B85C38;
   font-weight: 600;
+  box-shadow: 0 2rpx 10rpx rgba(42, 36, 32, 0.08);
 }
 
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80rpx;
-  height: 6rpx;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
-  border-radius: 3rpx;
+.list {
+  padding: 4rpx 24rpx 40rpx;
 }
 
-/* 订单列表 */
-.order-list {
-  padding: 24rpx 32rpx;
+.order-card {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(42, 36, 32, 0.05);
 }
 
-.order-item {
-  margin-bottom: 24rpx;
-}
-
-.order-header {
+.head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
 }
 
-.order-no {
+.no {
   font-size: 24rpx;
-  color: #9E9E9E;
+  color: #9A9086;
 }
 
-.order-dishes {
-  margin-bottom: 20rpx;
-}
-
-.customer-info {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
+.customer {
+  display: block;
+  font-size: 24rpx;
+  color: #6B6158;
   margin-bottom: 12rpx;
-  padding-bottom: 12rpx;
-  border-bottom: 1rpx dashed #EEEEEE;
 }
 
-.customer-label {
-  font-size: 24rpx;
-  color: #9E9E9E;
+.dishes {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
 }
 
-.customer-name {
+.dish {
   font-size: 28rpx;
-  color: #212121;
-  font-weight: 500;
+  color: #2A2420;
 }
 
-.dish-item {
-  padding: 8rpx 0;
-}
-
-.dish-name {
-  font-size: 28rpx;
-  color: #616161;
-}
-
-.order-footer {
+.foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-top: 16rpx;
-  border-top: 1rpx solid #F5F5F5;
+  border-top: 1rpx solid #E8E0D6;
 }
 
-.order-time {
+.time {
   font-size: 24rpx;
-  color: #9E9E9E;
+  color: #9A9086;
 }
 
-.order-total {
-  font-size: 28rpx;
-  color: #212121;
+.amount {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #B85C38;
 }
 
-.order-actions {
+.actions {
   display: flex;
   justify-content: flex-end;
   gap: 16rpx;
   margin-top: 20rpx;
-  padding-top: 16rpx;
-  padding-left: 20rpx;
-  border-top: 1rpx solid #F5F5F5;
-}
-
-.order-actions .btn {
-  padding: 10rpx 60rpx;
-  font-size: 24rpx;
-  border-radius: 30rpx;
-}
-
-/* 徽章 */
-.badge {
-  display: inline-block;
-  padding: 8rpx 20rpx;
-  border-radius: 50rpx;
-  font-size: 22rpx;
-  font-weight: 500;
-}
-
-.badge-warning {
-  background: rgba(255, 152, 0, 0.15);
-  color: #FF9800;
-}
-
-.badge-info {
-  background: rgba(33, 150, 243, 0.15);
-  color: #2196F3;
-}
-
-.badge-success {
-  background: rgba(76, 175, 80, 0.15);
-  color: #4CAF50;
-}
-
-.badge-gray {
-  background: rgba(158, 158, 158, 0.15);
-  color: #9E9E9E;
-}
-
-/* 空状态 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 160rpx 0;
-}
-
-.empty-icon {
-  font-size: 160rpx;
-  opacity: 0.5;
-}
-
-.empty-text {
-  font-size: 28rpx;
-  color: #9E9E9E;
-  margin-top: 32rpx;
 }
 </style>

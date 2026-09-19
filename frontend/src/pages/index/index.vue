@@ -1,104 +1,93 @@
 <template>
-  <view class="container">
-    <!-- 搜索栏 -->
+  <view class="page">
     <view class="search-bar">
-      <view class="search-container">
-        <text class="search-icon">🔍</text>
+      <view class="search-field">
+        <AppIcon name="search" :size="32" color="#9A9086" />
         <input
           class="search-input"
-          placeholder="搜索你喜欢的美食..."
+          placeholder="搜索菜品"
+          placeholder-class="search-ph"
           v-model="searchKeyword"
           @input="onSearch"
-          border="none"
-          :style="{ border: 'none' }"
         />
       </view>
     </view>
-    
-    <!-- 主内容区：左侧分类 + 右侧菜品 -->
-    <view class="main-content">
-      <!-- 左侧分类栏 -->
-      <view class="category-sidebar">
-        <view 
-          class="category-item"
-          :class="{ 'active': currentCategory === '' }"
+
+    <view class="main">
+      <scroll-view class="sidebar" scroll-y>
+        <view
+          class="cat-item"
+          :class="{ active: currentCategory === '' }"
           @click="selectCategory('')"
         >
-          <view class="cat-stack">
-            <text class="cat-icon cat-icon-text">{{ categoryIcons['全部'] }}</text>
-            <text class="cat-text">全部</text>
-          </view>
+          <text class="cat-text">全部</text>
         </view>
-        <view 
-          v-for="cat in categories" 
+        <view
+          v-for="cat in categories"
           :key="cat"
-          class="category-item"
-          :class="{ 'active': currentCategory === cat }"
+          class="cat-item"
+          :class="{ active: currentCategory === cat }"
           @click="selectCategory(cat)"
         >
-          <view class="cat-stack">
-            <template v-if="categoryIcons[cat] && (categoryIcons[cat].indexOf('http://') === 0 || categoryIcons[cat].indexOf('https://') === 0 || categoryIcons[cat].indexOf('/uploads/') === 0)">
-              <SafeImage imgClass="cat-icon-img" :src="categoryIcons[cat]" mode="aspectFill" />
-            </template>
-            <template v-else>
-              <text class="cat-icon cat-icon-text">{{ categoryIcons[cat] || '●' }}</text>
-            </template>
-            <text class="cat-text">{{ cat }}</text>
-          </view>
+          <SafeImage
+            v-if="isImageUrl(categoryIcons[cat])"
+            imgClass="cat-img"
+            :src="categoryIcons[cat]"
+            mode="aspectFill"
+          />
+          <text class="cat-text">{{ cat }}</text>
         </view>
-      </view>
-      
-      <!-- 右侧菜品列表 -->
-      <view class="dish-container">
-        <view class="dish-list">
-          <view 
-            class="dish-item card" 
-            v-for="dish in filteredDishes" 
-            :key="dish.id"
-            @click="goToDetail(dish.id)"
-          >
-            <!-- 菜品图片 -->
-            <template v-if="dish.imageUrl">
-              <view class="dish-image">
-                <SafeImage imgClass="dish-image-img" :src="dish.imageUrl" mode="aspectFill" />
-              </view>
-            </template>
-            <template v-else>
-              <view class="placeholder-image">
-                <text>暂无图片</text>
-              </view>
-            </template>
-            
-            <!-- 菜品信息 -->
-            <view class="dish-info">
-              <view class="dish-name">{{ dish.name }}</view>
-              <view class="dish-desc">{{ dish.description || '暂无简介' }}</view>
-              <view class="divider" />
-              <view class="dish-meta">
+      </scroll-view>
+
+      <scroll-view class="dish-pane" scroll-y>
+        <view
+          class="dish-row"
+          v-for="dish in filteredDishes"
+          :key="dish.id"
+          @click="goToDetail(dish.id)"
+        >
+          <view class="dish-thumb">
+            <SafeImage
+              v-if="dish.imageUrl"
+              imgClass="dish-thumb-img"
+              :src="dish.imageUrl"
+              mode="aspectFill"
+            />
+            <view v-else class="thumb-empty">
+              <AppIcon name="dish" :size="40" color="#D4C9BC" />
+            </view>
+          </view>
+
+          <view class="dish-body">
+            <text class="dish-name">{{ dish.name }}</text>
+            <text class="dish-desc">{{ dish.description || '暂无简介' }}</text>
+            <view class="dish-foot">
+              <view class="price-row">
                 <text class="price">¥{{ dish.price }}</text>
-                <text class="order-count">销量 {{ dish.orderCount || 0 }}</text>
+                <text class="sales">已点 {{ dish.orderCount || 0 }}</text>
+              </view>
+              <view class="dish-action" @click.stop>
+                <button
+                  v-if="needChoose(dish)"
+                  class="btn btn-primary btn-sm"
+                  @click="goToDetail(dish.id)"
+                >
+                  选规格
+                </button>
+                <view v-else class="add-btn" @click="addToCart(dish)">
+                  <AppIcon name="plus" :size="28" color="#FFFFFF" />
+                </view>
               </view>
             </view>
-            
-            <!-- 添加/选择按钮：有扩展项则展示“选择”并跳详情 -->
-            <view class="dish-action">
-              <block v-if="needChoose(dish)">
-                <button class="choose-btn" @click.stop="goToDetail(dish.id)">选择</button>
-              </block>
-              <block v-else>
-                <view class="add-btn" @click.stop="addToCart(dish)">
-                  <text class="add-plus">＋</text>
-                </view>
-              </block>
-            </view>
-          </view>
-          
-          <!-- 空状态 -->
-          <view v-if="filteredDishes.length === 0" class="empty-state">
-            <text>暂无菜品</text>
           </view>
         </view>
-      </view>
+
+        <EmptyState
+          v-if="filteredDishes.length === 0"
+          icon="empty-plate"
+          text="暂无菜品"
+        />
+      </scroll-view>
     </view>
   </view>
 </template>
@@ -106,11 +95,13 @@
 <script>
 import { dishApi, categoryApi, familyApi } from '@/utils/api.js'
 import SafeImage from '@/components/SafeImage.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import cartManager from '@/utils/cart.js'
 import userManager from '@/utils/user.js'
 
 export default {
-  components: { SafeImage },
+  components: { SafeImage, AppIcon, EmptyState },
   data() {
     return {
       dishes: [],
@@ -119,38 +110,31 @@ export default {
       searchKeyword: '',
       filteredDishes: [],
       isAdmin: false,
-      categoryIcons: { '全部': '🏷️' }
+      categoryIcons: {}
     }
   },
-  
+
   onLoad() {
     this.checkAdminStatus()
     this.loadCategories()
     this.loadDishes()
-    
-    // 监听用户信息更新事件
     uni.$on('userInfoUpdated', this.onUserInfoUpdated)
-    // 监听分类更新事件
     uni.$on('categoryUpdated', this.onCategoryUpdated)
-    // 监听菜品更新事件
     uni.$on('dishUpdated', this.onDishUpdated)
   },
-  
+
   onUnload() {
-    // 移除事件监听
     uni.$off('userInfoUpdated', this.onUserInfoUpdated)
     uni.$off('categoryUpdated', this.onCategoryUpdated)
     uni.$off('dishUpdated', this.onDishUpdated)
   },
-  
+
   onShow() {
-    // 每次显示页面时刷新数据和管理员状态
     this.checkAdminStatus()
     this.loadDishes()
   },
-  
+
   methods: {
-    // 是否需要进入详情选择
     needChoose(dish) {
       if (!dish) return false
       const ext = dish.extensions
@@ -165,46 +149,39 @@ export default {
       const options = Array.isArray(obj.options) ? obj.options : []
       return options.length > 0
     },
-    
-    // 判断是否为图片URL（支持 http/https 以及 /uploads 开头的后端静态资源）
+
     isImageUrl(v) {
       if (!v || typeof v !== 'string') return false
       return v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/uploads/')
     },
-    // 加载分类列表
+
     async loadCategories() {
       try {
         const list = await categoryApi.getList(1)
         this.categories = list.map(c => c.name)
-        // 合并后端图标到映射（如果有）
+        const icons = {}
         list.forEach(c => {
-          if (c.iconUrl) this.categoryIcons[c.name] = c.iconUrl
+          if (c.iconUrl) icons[c.name] = c.iconUrl
         })
-
+        this.categoryIcons = icons
       } catch (e) {
         console.error('加载分类失败', e)
       }
     },
-    // 用户信息更新后的回调
-    onUserInfoUpdated(userInfo) {
-      console.log('接收到用户信息更新事件:', userInfo)
+
+    onUserInfoUpdated() {
       this.checkAdminStatus()
     },
-    
-    // 分类更新后的回调
+
     onCategoryUpdated() {
-      console.log('接收到分类更新事件，刷新分类和菜品数据')
       this.loadCategories()
       this.loadDishes()
     },
-    
-    // 菜品更新后的回调
+
     onDishUpdated() {
-      console.log('接收到菜品更新事件，刷新菜品数据')
       this.loadDishes()
     },
-    
-    // 检查管理员状态
+
     async checkAdminStatus() {
       try {
         this.isAdmin = !!(await familyApi.isFamilyAdmin())
@@ -214,383 +191,253 @@ export default {
         this.isAdmin = userManager.isAdmin()
       }
     },
-    
-    // 选择分类
+
     selectCategory(category) {
       this.currentCategory = category
       this.filterDishes()
     },
-    
-    // 筛选菜品
+
     filterDishes() {
       let result = this.dishes
-      
-      // 按分类筛选
       if (this.currentCategory) {
         result = result.filter(dish => dish.category === this.currentCategory)
       }
-      
-      // 按关键词搜索
       if (this.searchKeyword) {
-        result = result.filter(dish => 
-          dish.name.includes(this.searchKeyword) || 
-          (dish.description && dish.description.includes(this.searchKeyword))
+        const kw = this.searchKeyword
+        result = result.filter(dish =>
+          dish.name.includes(kw) ||
+          (dish.description && dish.description.includes(kw))
         )
       }
-      
       this.filteredDishes = result
     },
-    
-    // 加载菜品列表
+
     async loadDishes() {
       try {
         uni.showLoading({ title: '加载中...' })
-        const dishes = await dishApi.getList(1) // 只查询启用的菜品
+        const dishes = await dishApi.getList(1)
         this.dishes = dishes
-        this.filteredDishes = dishes
+        this.filterDishes()
       } catch (error) {
         console.error('加载菜品失败:', error)
       } finally {
         uni.hideLoading()
       }
     },
-    
-    // 搜索菜品
+
     onSearch() {
       this.filterDishes()
     },
-    
-    // 跳转到详情页
+
     goToDetail(dishId) {
-      uni.navigateTo({
-        url: `/pages/dish/detail?id=${dishId}`
-      })
+      uni.navigateTo({ url: `/pages/dish/detail?id=${dishId}` })
     },
-    
-    // 添加到购物车
+
     addToCart(dish) {
       cartManager.addToCart(dish, 1)
-      uni.showToast({
-        title: '已添加到购物车',
-        icon: 'success'
-      })
-    },
-    
-    // 跳转到添加菜品页面
-    // 跳转菜品管理
-    goDishManage() {
-      uni.navigateTo({ url: '/pages/dish/manage' })
-    },
-    
-    // 跳转分类管理
-    goCategoryManage() {
-      uni.navigateTo({ url: '/pages/category/manage' })
+      uni.showToast({ title: '已加入购物车', icon: 'success' })
     }
   }
 }
 </script>
 
 <style scoped>
-.container {
-  min-height: 100vh;
+.page {
+  /* 相对页面内容区铺满（内容区本身在导航栏下方），不要用 100vh */
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-}
-
-.search-bar {
-  padding: 16rpx 24rpx;
-  padding-top: calc(16rpx + constant(safe-area-inset-top));
-  padding-top: calc(16rpx + env(safe-area-inset-top));
-  background: #FFFFFF;
-}
-
-.search-container {
-  display: flex;
-  align-items: center;
-  background: #F5F5F5;
-  border-radius: 40rpx;
-  padding: 0 28rpx;
-  height: 80rpx;
+  background: #F7F3EE;
   box-sizing: border-box;
 }
 
-.search-icon {
-  font-size: 32rpx;
-  margin-right: 16rpx;
+.search-bar {
+  padding: 12rpx 24rpx 16rpx;
+  background: #F7F3EE;
   flex-shrink: 0;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 16rpx 24rpx;
+  border: 1rpx solid #E8E0D6;
 }
 
 .search-input {
   flex: 1;
-  background: transparent;
   font-size: 28rpx;
-  color: #212121;
-  height: 80rpx;
-  line-height: 80rpx;
+  color: #2A2420;
 }
 
-.search-input::placeholder {
-  color: #BDBDBD;
+.search-ph {
+  color: #9A9086;
 }
 
-/* 主内容区：左右布局 */
-.main-content {
-  display: flex;
+.main {
   flex: 1;
-  overflow: hidden;
-  padding-left: 160rpx; /* 为固定侧栏预留空间 */
-}
-
-/* 左侧分类栏 */
-.category-sidebar {
-  width: 160rpx;
-  background-color: #FFFFFF;
-  overflow-y: auto;
-  overflow-x: hidden;
-  position: fixed;
-  left: 0;
-  top: 120rpx;
-  height: calc(100vh - 120rpx);
-  z-index: 90;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  border-right: 1rpx solid #F5F5F5;
-}
-
-.category-sidebar::-webkit-scrollbar {
-  display: none;
-}
-
-
-.category-item {
-  height: 140rpx;
   display: flex;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 168rpx;
+  background: transparent;
+  height: 100%;
+  border-right: 1rpx solid #E8E0D6;
+}
+
+.cat-item {
+  padding: 28rpx 16rpx;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: 28rpx;
-  color: #666666;
-  background-color: transparent;
+  gap: 10rpx;
   position: relative;
-  transition: all 0.3s;
-  padding: 0 12rpx;
-  flex-shrink: 0; /* 防止分类项被压缩 */
 }
 
-.category-item.active {
-  background-color: #FFF5F5;
-  color: #FF6B6B;
-  font-weight: bold;
+.cat-item.active {
+  background: #F7F3EE;
 }
 
-.category-item.active::before {
+.cat-item.active::before {
   content: '';
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
   width: 6rpx;
-  height: 48rpx;
-  background-color: #FF6B6B;
-  border-radius: 0 6rpx 6rpx 0;
+  height: 36rpx;
+  background: #B85C38;
+  border-radius: 0 4rpx 4rpx 0;
 }
 
-.cat-stack { display:flex; flex-direction: column; align-items: center; justify-content:center; gap: 8rpx; width: 100%; }
-.cat-icon { width: 48rpx; text-align: center; }
-.cat-icon-text { font-size: 40rpx; }
-:deep(.cat-icon-img) { width: 56rpx; height: 56rpx; }
-.cat-text { font-size: 28rpx; color: #2E2A27; }
+.cat-item.active .cat-text {
+  color: #B85C38;
+  font-weight: 600;
+}
 
-/* 右侧菜品容器 */
-.dish-container {
+:deep(.cat-img) {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 10rpx;
+}
+
+.cat-text {
+  font-size: 24rpx;
+  color: #6B6158;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.dish-pane {
   flex: 1;
-  background-color: #ffffff;
-  overflow-y: auto;
-  height: calc(100vh - 120rpx);
+  height: 100%;
+  padding: 16rpx 20rpx;
+  box-sizing: border-box;
 }
 
-.dish-list {
-  padding: 20rpx;
+.dish-row {
   display: flex;
-  flex-direction: column;
   gap: 20rpx;
-}
-
-.dish-item {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  position: relative;
-  background-color: #ffffff;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(255, 107, 107, 0.08);
-  transition: all 0.2s ease;
-}
-
-.dish-item:active {
-  box-shadow: 0 6rpx 20rpx rgba(255, 107, 107, 0.12);
-}
-
-.dish-image {
-  width: 180rpx;
-  height: 180rpx;
+  background: #FFFFFF;
   border-radius: 20rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(42, 36, 32, 0.05);
+}
+
+.dish-thumb {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 16rpx;
   overflow: hidden;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #FAFAFA 0%, #F0F0F0 100%);
+  background: #F7F3EE;
+}
+
+:deep(.dish-thumb-img) {
+  width: 160rpx;
+  height: 160rpx;
+}
+
+.thumb-empty {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-:deep(.dish-image-img) {
-  width: 190rpx;
-  height: 190rpx;
-}
-
-.placeholder-image {
-  width: 180rpx;
-  height: 180rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #BDBDBD;
-  font-size: 24rpx;
-}
-
-.dish-info {
+.dish-body {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
 }
 
 .dish-name {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #212121;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #2A2420;
+  margin-bottom: 6rpx;
 }
 
 .dish-desc {
   font-size: 24rpx;
-  color: #616161;
+  color: #9A9086;
   line-height: 1.4;
-  word-wrap: break-word;
-  word-break: break-word;
-  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  flex: 1;
 }
 
-.dish-meta {
+.dish-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 12rpx;
+  gap: 12rpx;
+}
+
+.price-row {
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 4rpx;
 }
 
 .price {
   font-size: 32rpx;
-  color: #FF6B6B;
-  font-weight: bold;
+  font-weight: 700;
+  color: #B85C38;
 }
 
-.order-count {
-  font-size: 24rpx;
-  color: #9E9E9E;
-}
-
-.dish-action {
-  position: absolute;
-  right: 20rpx;
-  bottom: 20rpx;
+.sales {
+  font-size: 22rpx;
+  color: #9A9086;
 }
 
 .add-btn {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 14rpx;
+  background: #B85C38;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-size: 40rpx;
-  font-weight: bold;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
-  box-shadow: 0 6rpx 20rpx rgba(255, 107, 107, 0.35);
-  border: 3rpx solid rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
 }
 
 .add-btn:active {
-  transform: scale(0.9);
-  box-shadow: 0 4rpx 12rpx rgba(255, 107, 107, 0.45);
+  background: #8F4528;
 }
-
-.add-plus {
-  line-height: 1;
-  margin-top: -2rpx;
-}
-
-.choose-btn {
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
-  color: #fff;
-  border: none;
-  border-radius: 50rpx;
-  padding: 0 24rpx;
-  font-size: 26rpx;
-  font-weight: 600;
-  box-shadow: 0 6rpx 20rpx rgba(255, 107, 107, 0.35);
-  transition: all 0.2s ease;
-  min-width: 90rpx;
-  text-align: center;
-}
-
-.choose-btn:active {
-  transform: scale(0.95);
-  box-shadow: 0 4rpx 12rpx rgba(255, 107, 107, 0.45);
-}
-
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 100rpx 0;
-  color: #999999;
-  font-size: 28rpx;
-}
-
-.fab-button {
-  position: fixed;
-  right: 40rpx;
-  bottom: 120rpx;
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10rpx 28rpx rgba(123, 91, 68, 0.30);
-  z-index: 1000;
-}
-
-.fab-icon {
-  color: #ffffff;
-  font-size: 60rpx;
-  font-weight: bold;
-}
-
-.fab-secondary { bottom: 240rpx; }
-
-.modal-mask {
-  position: fixed; left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(0,0,0,0.35);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 2000;
-}
-.modal-card { width: 640rpx; }
-.modal-title { font-size: 32rpx; font-weight: bold; color: #2E2A27; margin-bottom: 20rpx; }
-.modal-body { display: flex; flex-direction: column; gap: 20rpx; }
-.modal-input { background:#F6F3EF; border-radius: 16rpx; padding: 20rpx; font-size: 28rpx; }
-.upload-row { display:flex; align-items:center; gap: 16rpx; }
-.icon-preview { width: 64rpx; height: 64rpx; border-radius: 12rpx; background:#EFE7DD; }
-.modal-actions { display:flex; gap: 20rpx; margin-top: 12rpx; }
 </style>
