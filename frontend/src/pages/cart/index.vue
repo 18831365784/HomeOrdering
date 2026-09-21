@@ -124,7 +124,11 @@ export default {
 
   computed: {
     totalAmount() {
-      return cartManager.getTotalAmount().toFixed(2)
+      const total = this.cartItems.reduce(
+        (sum, item) => sum + Number(item.price) * Number(item.quantity),
+        0
+      )
+      return total.toFixed(2)
     }
   },
 

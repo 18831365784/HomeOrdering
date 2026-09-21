@@ -4,15 +4,21 @@ class CartManager {
     this.storageKey = 'shopping_cart'
   }
   
+  // 复制一份再读写。小程序本地存储会返回同一对象，直接改再存回去时，
+  // 页面拿回的还是旧引用，列表和金额都不会刷新。
+  cloneCart(cart) {
+    if (!Array.isArray(cart)) return []
+    return JSON.parse(JSON.stringify(cart))
+  }
+
   // 获取购物车数据
   getCart() {
-    const cart = uni.getStorageSync(this.storageKey)
-    return cart || []
+    return this.cloneCart(uni.getStorageSync(this.storageKey))
   }
   
   // 保存购物车数据
   saveCart(cart) {
-    uni.setStorageSync(this.storageKey, cart)
+    uni.setStorageSync(this.storageKey, this.cloneCart(cart))
   }
   
   // 生成键：同菜品不同选项应视为不同项
@@ -52,11 +58,10 @@ class CartManager {
     
     if (item) {
       if (quantity <= 0) {
-        this.removeFromCart(key)
-      } else {
-        item.quantity = quantity
-        this.saveCart(cart)
+        return this.removeFromCart(key)
       }
+      item.quantity = quantity
+      this.saveCart(cart)
     }
     
     return cart
@@ -69,11 +74,10 @@ class CartManager {
     
     if (item) {
       if (quantity <= 0) {
-        this.removeFromCartByDishId(dishId)
-      } else {
-        item.quantity = quantity
-        this.saveCart(cart)
+        return this.removeFromCartByDishId(dishId)
       }
+      item.quantity = quantity
+      this.saveCart(cart)
     }
     
     return cart
