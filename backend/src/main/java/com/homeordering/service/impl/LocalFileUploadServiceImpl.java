@@ -44,11 +44,7 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR.getCode(), "创建上传目录失败");
         }
 
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.contains(".")) {
-            throw new BusinessException(ErrorCode.FILE_TYPE_NOT_SUPPORT);
-        }
-        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String extension = resolveExtension(file);
         String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String fileName = dateStr + "_" + UUID.randomUUID().toString().replace("-", "") + extension;
 
@@ -83,5 +79,35 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
             return new File(System.getProperty("user.dir"), path.substring(2)).getAbsoluteFile();
         }
         return new File(path).getAbsoluteFile();
+    }
+
+    /** 微信 chooseAvatar 临时文件可能没有后缀，缺省按 png 存 */
+    private String resolveExtension(MultipartFile file) {
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null) {
+            int dot = originalFilename.lastIndexOf('.');
+            if (dot >= 0 && dot < originalFilename.length() - 1) {
+                String ext = originalFilename.substring(dot).toLowerCase();
+                if (ext.matches("\\.(jpg|jpeg|png|gif|webp|bmp)")) {
+                    return ext;
+                }
+            }
+        }
+        String contentType = file.getContentType();
+        if (contentType != null) {
+            if (contentType.contains("jpeg")) {
+                return ".jpg";
+            }
+            if (contentType.contains("png")) {
+                return ".png";
+            }
+            if (contentType.contains("gif")) {
+                return ".gif";
+            }
+            if (contentType.contains("webp")) {
+                return ".webp";
+            }
+        }
+        return ".png";
     }
 }

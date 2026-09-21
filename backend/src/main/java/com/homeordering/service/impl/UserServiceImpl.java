@@ -45,6 +45,9 @@ public class UserServiceImpl implements UserService {
 
     private static final String WX_LOGIN_URL =
             "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code";
+    private static final String PLACEHOLDER_NICKNAME = "微信用户";
+    private static final String PLACEHOLDER_AVATAR_ID =
+            "POgEwh4mIHO4nibH0KlMECNjjGxQUq24ZEaGT4poC6icRiccVgKSyHlibeiaNsUpoladAKQw1ia9F4gZibXsweasXqibicw";
 
     @Override
     public AuthDTO login(LoginDTO loginDTO) {
@@ -57,13 +60,16 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
+        boolean newUser = user == null;
         LocalDateTime now = LocalDateTime.now();
-        if (user == null) {
+        String nickname = usableNickname(loginDTO.getNickname());
+        String avatarUrl = usableAvatar(loginDTO.getAvatarUrl());
+        if (newUser) {
             user = new User();
             user.setOpenid(openid);
             user.setUuid(UUID.randomUUID().toString());
-            user.setNickname(loginDTO.getNickname());
-            user.setAvatarUrl(fileUrlHelper.toStoredPath(loginDTO.getAvatarUrl()));
+            user.setNickname(nickname);
+            user.setAvatarUrl(avatarUrl);
             user.setRole(0);
             user.setBalance(BigDecimal.ZERO);
             user.setCreateTime(now);
@@ -71,18 +77,22 @@ public class UserServiceImpl implements UserService {
             user.setLastLoginTime(now);
             userMapper.insert(user);
         } else {
-            if (loginDTO.getNickname() != null) {
-                user.setNickname(loginDTO.getNickname());
+            if (nickname != null) {
+                user.setNickname(nickname);
             }
-            if (loginDTO.getAvatarUrl() != null) {
-                user.setAvatarUrl(fileUrlHelper.toStoredPath(loginDTO.getAvatarUrl()));
+            if (avatarUrl != null) {
+                user.setAvatarUrl(avatarUrl);
             }
             user.setLastLoginTime(now);
             user.setUpdateTime(now);
             userMapper.updateById(user);
         }
-        String token = user.getUuid() + "_" + System.currentTimeMillis();
-        return new AuthDTO(toDto(user), token);
+        AuthDTO auth = new AuthDTO();
+        auth.setUser(toDto(user));
+        auth.setToken(user.getUuid() + "_" + System.currentTimeMillis());
+        auth.setNewUser(newUser);
+        auth.setProfileCompleted(usableNickname(user.getNickname()) != null);
+        return auth;
     }
 
     @Override
@@ -112,10 +122,16 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.TOKEN_INVALID);
         }
         if (updateDTO.getNickname() != null) {
-            user.setNickname(updateDTO.getNickname());
+            String nickname = usableNickname(updateDTO.getNickname());
+            if (nickname != null) {
+                user.setNickname(nickname);
+            }
         }
         if (updateDTO.getAvatarUrl() != null) {
-            user.setAvatarUrl(fileUrlHelper.toStoredPath(updateDTO.getAvatarUrl()));
+            String avatarUrl = usableAvatar(updateDTO.getAvatarUrl());
+            if (avatarUrl != null) {
+                user.setAvatarUrl(avatarUrl);
+            }
         }
         if (updateDTO.getPhone() != null) {
             user.setPhone(updateDTO.getPhone());
@@ -150,6 +166,34 @@ public class UserServiceImpl implements UserService {
         dto.setIsAdmin(familyAccessService.isFamilyAdmin(user.getUuid()));
         dto.setRole(Boolean.TRUE.equals(dto.getIsAdmin()) ? 1 : 0);
         return dto;
+    }
+
+    /** 忽略微信已废弃接口返回的占位昵称，以及空值 */
+    private String usableNickname(String nickname) {
+        if (nickname == null) {
+            return null;
+        }
+        String value = nickname.trim();
+        if (value.isEmpty() || PLACEHOLDER_NICKNAME.equals(value)) {
+            return null;
+        }
+        return value;
+    }
+
+    /** 忽略默认灰头像、本地临时路径；本站上传再剥成相对路径 */
+    private String usableAvatar(String avatarUrl) {
+        if (avatarUrl == null) {
+            return null;
+        }
+        String value = avatarUrl.trim();
+        if (value.isEmpty() || value.contains(PLACEHOLDER_AVATAR_ID)) {
+            return null;
+        }
+        if (value.startsWith("wxfile://") || value.startsWith("file://")
+                || value.startsWith("http://tmp") || value.contains("://tmp/")) {
+            return null;
+        }
+        return fileUrlHelper.toStoredPath(value);
     }
 
     private String getOpenidFromWx(String code) {

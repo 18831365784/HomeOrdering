@@ -60,6 +60,7 @@ const request = (url, options = {}) => {
       url: BASE_URL + url,
       method,
       data,
+      timeout: 20000,
       header: buildHeaders(options.header || {}),
       success: (res) => {
         if (res.statusCode === 401) {
@@ -78,7 +79,11 @@ const request = (url, options = {}) => {
         }
       },
       fail: (err) => {
-        uni.showToast({ title: '网络请求失败', icon: 'none' })
+        const msg = (err && (err.errMsg || err.message)) || ''
+        uni.showToast({
+          title: /timeout/i.test(msg) ? '请求超时，请确认后端已启动' : '网络请求失败',
+          icon: 'none'
+        })
         reject(err)
       }
     })
@@ -99,6 +104,7 @@ const uploadFile = (filePath, path = '/file/upload') => {
       url: BASE_URL + path,
       filePath,
       name: 'file',
+      timeout: 20000,
       header,
       success: (res) => {
         if (res.statusCode === 401) {

@@ -1,6 +1,5 @@
 package com.homeordering.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,10 +8,15 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class AuthDTO {
 
     private UserDTO user;
 
     private String token;
+
+    /** openid 在库中不存在，本次新建 */
+    private Boolean newUser;
+
+    /** 已有真实昵称，不必再走完善资料 */
+    private Boolean profileCompleted;
 }

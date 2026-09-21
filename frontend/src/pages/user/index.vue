@@ -66,11 +66,16 @@
       @update:show="showAvatarModal = $event"
     >
       <view class="avatar-opts">
-        <view class="avatar-opt" @click="useWechatAvatar">
+        <button
+          class="avatar-opt avatar-opt-btn"
+          hover-class="none"
+          open-type="chooseAvatar"
+          @chooseavatar="onChooseAvatar"
+        >
           <AppIcon name="family" :size="36" color="#B85C38" />
           <text>使用微信头像</text>
-        </view>
-        <view class="avatar-opt" @click="chooseImage">
+        </button>
+        <view class="avatar-opt" @click="chooseAlbumAvatar">
           <AppIcon name="camera" :size="36" color="#B85C38" />
           <text>从相册选择</text>
         </view>
@@ -84,7 +89,16 @@
       @update:show="showNicknameModal = $event"
       @confirm="saveNickname"
     >
-      <input class="input" v-model="tempNickname" placeholder="请输入昵称" maxlength="20" />
+      <input
+        class="input"
+        type="nickname"
+        :value="tempNickname"
+        placeholder="点击填写，可选用微信昵称"
+        maxlength="20"
+        @blur="onNicknameBlur"
+        @input="onNicknameInput"
+        @nicknamereview="onNicknameReview"
+      />
     </AppModal>
 
     <AppModal
@@ -205,40 +219,41 @@ export default {
       this.showAvatarModal = true
     },
 
-    useWechatAvatar() {
-      uni.getUserProfile({
-        desc: '获取您的头像',
-        success: (res) => {
-          if (res.userInfo && res.userInfo.avatarUrl) {
-            this.updateAvatar(res.userInfo.avatarUrl)
-          }
-        },
-        fail: () => {
-          uni.showToast({ title: '请允许获取头像权限', icon: 'none' })
-        }
-      })
+    onChooseAvatar(e) {
       this.showAvatarModal = false
+      const tempPath = this.readAvatarUrl(e)
+      if (!tempPath) return
+      this.uploadChosenAvatar(tempPath)
     },
 
-    chooseImage() {
+    readAvatarUrl(e) {
+      const detail = (e && e.detail) || (e && e.mp && e.mp.detail) || {}
+      return detail.avatarUrl || ''
+    },
+
+    chooseAlbumAvatar() {
+      this.showAvatarModal = false
       uni.chooseImage({
         count: 1,
         sizeType: ['compressed'],
-        sourceType: ['album'],
-        success: async (res) => {
-          const tempPath = res.tempFilePaths[0]
-          try {
-            uni.showLoading({ title: '上传中...' })
-            const imageUrl = await fileApi.upload(tempPath)
-            this.updateAvatar(imageUrl)
-          } catch (e) {
-            uni.showToast({ title: '上传失败', icon: 'none' })
-          } finally {
-            uni.hideLoading()
-          }
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const tempPath = res.tempFilePaths && res.tempFilePaths[0]
+          if (tempPath) this.uploadChosenAvatar(tempPath)
         }
       })
-      this.showAvatarModal = false
+    },
+
+    async uploadChosenAvatar(tempPath) {
+      try {
+        uni.showLoading({ title: '上传中...' })
+        const imageUrl = await fileApi.upload(tempPath)
+        await this.updateAvatar(imageUrl)
+      } catch (e) {
+        uni.showToast({ title: '上传失败', icon: 'none' })
+      } finally {
+        uni.hideLoading()
+      }
     },
 
     async updateAvatar(avatarUrl) {
@@ -261,15 +276,43 @@ export default {
       this.showNicknameModal = true
     },
 
+    onNicknameInput(e) {
+      this.tempNickname = (e.detail && e.detail.value) || ''
+    },
+
+    onNicknameBlur(e) {
+      this.tempNickname = this.readNickname(e)
+    },
+
+    onNicknameReview(e) {
+      const pass = e && e.detail && (e.detail.pass === undefined || e.detail.pass)
+      if (pass) {
+        const value = this.readNickname(e)
+        if (value) this.tempNickname = value
+      } else {
+        uni.showToast({ title: '昵称未通过审核，请换一个', icon: 'none' })
+      }
+    },
+
+    readNickname(e) {
+      const detail = (e && e.detail) || {}
+      return ((detail.value != null ? detail.value : this.tempNickname) || '').trim()
+    },
+
     async saveNickname() {
-      if (!this.tempNickname.trim()) {
-        uni.showToast({ title: '昵称不能为空', icon: 'none' })
+      const nickname = (this.tempNickname || '').trim()
+      if (!nickname || nickname === '微信用户') {
+        uni.showToast({ title: '请填写昵称，点击输入框可选用微信昵称', icon: 'none' })
         return
       }
       try {
         const uuid = userManager.getUuid()
-        await userApi.updateProfile({ uuid, nickname: this.tempNickname.trim() })
-        this.userInfo.nickname = this.tempNickname.trim()
+        await userApi.updateProfile({ uuid, nickname })
+        this.userInfo.nickname = nickname
+        userManager.saveUserInfo({
+          ...userManager.getUserInfo(),
+          nickname
+        })
         this.showNicknameModal = false
         uni.showToast({ title: '昵称更新成功', icon: 'success' })
       } catch (e) {
@@ -320,6 +363,7 @@ export default {
             try {
               await authApi.logout()
             } catch (e) {}
+            userManager.markManualLogout()
             userManager.clearUserInfo()
             uni.reLaunch({ url: '/pages/login/index' })
           }
@@ -493,7 +537,8 @@ export default {
   gap: 16rpx;
 }
 
-.avatar-opt {
+.avatar-opt,
+.avatar-opt-btn {
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -502,5 +547,14 @@ export default {
   border-radius: 16rpx;
   font-size: 28rpx;
   color: #2A2420;
+  width: 100%;
+  margin: 0;
+  line-height: 1.2;
+  text-align: left;
+  border: none;
+}
+
+.avatar-opt-btn::after {
+  display: none;
 }
 </style>

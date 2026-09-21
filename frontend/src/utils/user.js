@@ -70,6 +70,22 @@ class UserManager {
       return false
     }
   }
+
+  markManualLogout() {
+    try {
+      uni.setStorageSync('manual_logout', '1')
+    } catch (e) {}
+  }
+
+  consumeManualLogout() {
+    try {
+      const value = uni.getStorageSync('manual_logout')
+      uni.removeStorageSync('manual_logout')
+      return value === '1'
+    } catch (e) {
+      return false
+    }
+  }
 }
 
 export default new UserManager()
