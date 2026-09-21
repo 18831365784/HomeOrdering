@@ -131,6 +131,7 @@ export default {
 
   onShow() {
     this.checkAdminStatus()
+    this.loadCategories()
     this.loadDishes()
   },
 
