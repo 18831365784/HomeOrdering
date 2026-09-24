@@ -73,7 +73,7 @@
 
 默认 profile 为 `dev`。服务器用 `--spring.profiles.active=prod` 或环境变量 `SPRING_PROFILES_ACTIVE=prod`。
 
-域名 `selfcode.top` 未备案前：生产 `server.url` 与前端生产 API 用 `http://82.157.3.231:8080`（不要走 80/443）。备案并启用 HTTPS 后改为 `https://selfcode.top`。
+生产默认：`server.url=https://selfcode.top`（不要带 `/api`），前端 `VITE_API_BASE_URL=https://selfcode.top/api`。临时公网 IP 时用环境变量 `SERVER_URL=http://82.157.3.231:8080` 覆盖，并同步改前端生产 API。
 
 强制：
 

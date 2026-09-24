@@ -21,8 +21,8 @@
           class="member"
           @click="onMemberClick(member)"
         >
-          <image
-            class="member-avatar"
+          <SafeImage
+            imgClass="member-avatar"
             :src="member.avatarUrl || '/static/icons/default-avatar.png'"
             mode="aspectFill"
           />
@@ -98,9 +98,10 @@ import userManager from '@/utils/user.js'
 import AppIcon from '@/components/AppIcon.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import AppModal from '@/components/AppModal.vue'
+import SafeImage from '@/components/SafeImage.vue'
 
 export default {
-  components: { AppIcon, EmptyState, AppModal },
+  components: { AppIcon, EmptyState, AppModal, SafeImage },
   data() {
     return {
       hasFamily: false,
@@ -364,7 +365,7 @@ export default {
   border-bottom: none;
 }
 
-.member-avatar {
+:deep(.member-avatar) {
   width: 80rpx;
   height: 80rpx;
   border-radius: 50%;

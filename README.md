@@ -42,8 +42,8 @@ yml 中形如 `${NAME:默认值}`：有环境变量用环境变量，没有就�
 `server.url` 用于拼接上传后的图片绝对地址，须与小程序实际能访问到的后端一致（不要带 `/api`）：
 
 - 本机调试：`http://localhost:8080`
-- 域名未备案前：`http://82.157.3.231:8080`（腾讯云未备案不能走 80/443，小程序开发者工具需关闭域名校验）
-- 备案通过并配好 HTTPS 后：`https://selfcode.top`
+- 生产（已备案 HTTPS）：`https://selfcode.top`（`application-prod.yml` 默认值；可用环境变量 `SERVER_URL` 覆盖）
+- 临时公网 IP：`http://82.157.3.231:8080`（未备案或 HTTPS 未就绪时；小程序开发者工具需关闭域名校验）
 
 数据库里本站图片只存 `/uploads/...`，换服务器只改 `server.url`（并搬迁上传目录文件）即可，不必改库。
 
@@ -69,10 +69,10 @@ mysql -u root -p < backend/src/main/resources/db/init.sql
 1. 本机改 `application-dev.yml`；服务器改 `application-prod.yml`。微信登录需提供 `WX_APPID` / `WX_SECRET`（环境变量或写入 yml 本地不提交）。
 2. 本机：`cd backend && mvn spring-boot:run`  
    服务器：`java -jar home-ordering-backend-1.0.0.jar --spring.profiles.active=prod`  
-   探活：本机 `curl http://localhost:8080/api/health`；服务器 `curl http://82.157.3.231:8080/api/health`，应返回成功。
-3. 本机前端用 `frontend/.env.development`；真机/发布用 `frontend/.env.production`。
-4. `cd frontend && npm install && npm run dev:mp-weixin`
-5. 微信开发者工具导入 `frontend/dist/dev/mp-weixin`。备案完成前须关闭 request / uploadFile / downloadFile 域名校验。备案后把合法域名配成 `https://selfcode.top`。
+   探活：本机 `curl http://localhost:8080/api/health`；生产 `curl https://selfcode.top/api/health`，应返回成功。
+3. 本机前端用 `frontend/.env.development`；真机/发布用 `frontend/.env.production`（`VITE_API_BASE_URL=https://selfcode.top/api`）。
+4. `cd frontend && npm install && npm run dev:mp-weixin`（发布用 `npm run build:mp-weixin`）。
+5. 微信开发者工具导入对应 `frontend/dist/.../mp-weixin`。生产小程序后台把 request / uploadFile / downloadFile 合法域名配成 `https://selfcode.top`。
 
 ## 使用流程
 

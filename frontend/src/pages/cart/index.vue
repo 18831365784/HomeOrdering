@@ -65,8 +65,8 @@
               :class="{ active: selectedMaker && selectedMaker.uuid === member.uuid }"
               @click="selectMaker(member)"
             >
-              <image
-                class="maker-avatar"
+              <SafeImage
+                imgClass="maker-avatar"
                 :src="member.avatarUrl || '/static/icons/default-avatar.png'"
                 mode="aspectFill"
               />
@@ -409,7 +409,7 @@ export default {
   background: rgba(184, 92, 56, 0.08);
 }
 
-.maker-avatar {
+:deep(.maker-avatar) {
   width: 72rpx;
   height: 72rpx;
   border-radius: 50%;

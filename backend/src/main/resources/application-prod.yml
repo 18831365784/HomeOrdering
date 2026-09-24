@@ -1,10 +1,10 @@
 # 服务器生产环境。启动：java -jar xxx.jar --spring.profiles.active=prod
 #
-# 域名 selfcode.top 尚未备案：腾讯云未备案域名不能走 80/443，
-# 当前用公网 IP + 8080。备案通过并配好 HTTPS 后，把 server.url 改为 https://selfcode.top
+# server.url 用于拼接上传图绝对地址（不要带 /api）。备案 + HTTPS 后默认走域名；
+# 临时回退公网 IP 时设环境变量 SERVER_URL=http://82.157.3.231:8080
 
 server:
-  url: ${SERVER_URL:http://82.157.3.231:8080}
+  url: ${SERVER_URL:https://selfcode.top}
 
 spring:
   datasource:

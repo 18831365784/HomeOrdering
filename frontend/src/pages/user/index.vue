@@ -3,8 +3,8 @@
     <view class="identity">
       <view class="identity-main">
         <view class="avatar-wrap" @click="showAvatarPicker">
-          <image
-            class="avatar"
+          <SafeImage
+            imgClass="avatar"
             :src="userInfo.avatarUrl || '/static/icons/default-avatar.png'"
             mode="aspectFill"
           />
@@ -119,9 +119,10 @@ import userManager from '@/utils/user.js'
 import AppIcon from '@/components/AppIcon.vue'
 import MenuRow from '@/components/MenuRow.vue'
 import AppModal from '@/components/AppModal.vue'
+import SafeImage from '@/components/SafeImage.vue'
 
 export default {
-  components: { AppIcon, MenuRow, AppModal },
+  components: { AppIcon, MenuRow, AppModal, SafeImage },
   data() {
     return {
       userInfo: {},
@@ -405,7 +406,7 @@ export default {
   flex-shrink: 0;
 }
 
-.avatar {
+:deep(.avatar) {
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
