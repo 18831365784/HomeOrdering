@@ -43,6 +43,13 @@
     </view>
 
     <view v-if="currentTab === 'making'" class="list">
+      <view v-if="subscribeEnabled" class="remind">
+        <view class="remind-copy">
+          <text class="remind-title">微信制作提醒</text>
+          <text class="remind-desc">有人指定你做菜时会发服务通知。每点一次可多收一条，用完后再点。</text>
+        </view>
+        <button class="btn btn-sm btn-primary remind-btn" @click="enableMakerRemind">接收提醒</button>
+      </view>
       <view
         class="order-card"
         v-for="order in makingOrders"
@@ -89,7 +96,8 @@
 </template>
 
 <script>
-import { orderApi } from '@/utils/api.js'
+import { orderApi, notifyApi } from '@/utils/api.js'
+import { requestMakerSubscribe } from '@/utils/subscribe.js'
 import StatusBadge from '@/components/StatusBadge.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
@@ -99,19 +107,40 @@ export default {
     return {
       currentTab: 'my',
       myOrders: [],
-      makingOrders: []
+      makingOrders: [],
+      subscribeEnabled: false,
+      templateId: ''
     }
   },
 
-  onLoad() {
+  onLoad(options) {
+    if (options && options.tab === 'making') {
+      this.currentTab = 'making'
+    }
     this.loadOrders()
   },
 
   onShow() {
     this.loadOrders()
+    this.loadSubscribeConfig()
   },
 
   methods: {
+    async loadSubscribeConfig() {
+      try {
+        const cfg = await notifyApi.makerSubscribe()
+        this.subscribeEnabled = !!(cfg && cfg.enabled && cfg.templateId)
+        this.templateId = this.subscribeEnabled ? cfg.templateId : ''
+      } catch (e) {
+        this.subscribeEnabled = false
+        this.templateId = ''
+      }
+    },
+
+    enableMakerRemind() {
+      requestMakerSubscribe(this.templateId)
+    },
+
     switchTab(tab) {
       this.currentTab = tab
       this.loadOrders()
@@ -235,6 +264,45 @@ export default {
 
 .list {
   padding: 4rpx 24rpx 40rpx;
+}
+
+.remind {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(42, 36, 32, 0.05);
+}
+
+.remind-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.remind-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2A2420;
+  margin-bottom: 8rpx;
+}
+
+.remind-desc {
+  display: block;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #9A9086;
+}
+
+.remind-btn {
+  flex: none;
+  width: 168rpx;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .order-card {

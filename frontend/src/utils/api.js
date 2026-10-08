@@ -196,6 +196,12 @@ export const orderApi = {
   }
 }
 
+export const notifyApi = {
+  makerSubscribe() {
+    return request('/notify/maker-subscribe', { method: 'GET' })
+  }
+}
+
 export const feedbackApi = {
   submit(content) {
     return request('/feedback', { method: 'POST', data: { content } })
@@ -291,6 +297,7 @@ export default {
   resolveMediaUrl,
   dishApi,
   orderApi,
+  notifyApi,
   fileApi,
   userApi,
   authApi,

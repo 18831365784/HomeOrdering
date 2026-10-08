@@ -30,9 +30,9 @@ HomeOrdering/
 
 | 端 | 文件 | 必改项 |
 |---|---|---|
-| 后端公共 | `backend/src/main/resources/application.yml` | 端口、context-path、微信占位 |
-| 后端开发 | `backend/src/main/resources/application-dev.yml` | `server.url`、数据源、`file.upload.path` |
-| 后端生产 | `backend/src/main/resources/application-prod.yml` | `server.url`、数据源、`file.upload.path` |
+| 后端公共 | `backend/src/main/resources/application.yml` | 端口、context-path、微信占位、制作提醒模板 ID |
+| 后端开发 | `backend/src/main/resources/application-dev.yml` | `server.url`、数据源、`file.upload.path`、`wx.subscribe.miniprogram-state` |
+| 后端生产 | `backend/src/main/resources/application-prod.yml` | `server.url`、数据源、`file.upload.path`、`wx.subscribe.miniprogram-state` |
 | 前端开发 | `frontend/.env.development` | `VITE_API_BASE_URL` |
 | 前端真机/发布 | `frontend/.env.production` | `VITE_API_BASE_URL` |
 | 微信密钥 | 启动前设环境变量 `WX_APPID`、`WX_SECRET`（说明见 `backend/.env.example`；本机也可直接改 yml 默认值，但不要提交真实密钥） | 不要写进业务代码 |
@@ -72,8 +72,10 @@ mysql -u root -p < backend/src/main/resources/db/init.sql
    探活：本机 `curl http://localhost:8080/api/health`；生产 `curl https://selfcode.top/api/health`，应返回成功。
 3. 本机前端用 `frontend/.env.development`；真机/发布用 `frontend/.env.production`（`VITE_API_BASE_URL=https://selfcode.top/api`）。
 4. `cd frontend && npm install && npm run dev:mp-weixin`（发布用 `npm run build:mp-weixin`）。
-5. 微信开发者工具导入对应 `frontend/dist/.../mp-weixin`。生产小程序后台把 request / uploadFile / downloadFile 合法域名配成 `https://selfcode.top`。
+5. 微信开发者工具导入对应 `frontend/dist/.../mp-weixin`。生产小程序后台把 request / uploadFile / downloadFile 合法域名配成 `https://selfcode.top`。若提示某个 `utils/*.js` 的 module is not defined，确认 `frontend/src/manifest.json` 里 `ignoreDevUnusedFiles`、`ignoreUploadUnusedFiles` 为 `false`，重新编译后在工具里清缓存再编译。
 
 ## 使用流程
 
 微信登录（老用户直接进入；新用户再选头像、填昵称）→ 创建家庭或填邀请码加入 → 管理员维护分类和菜品（做法选填，只在详情有内容时显示）→ 成员加购并选择制作人下单（扣余额）→ 制作人接单或拒绝、完成；下单人可在待接单时取消（退余额）。制作人拒绝后状态为「制作人已拒绝」并退余额。订单从底部「订单」进入。「我的」里可以提交问题反馈，记录在 `feedback` 表。
+
+别人指定你做菜时，会给制作人发一条微信服务通知。模板是「顾客下单提醒」，ID 和关键词 `thing45`、`thing11`、`time36` 在 `application.yml` 的 `wx.subscribe`。改完重启后端。前端不用再配模板号。制作人在「我的」或「订单 → 我的制作」点「接收提醒」，每同意一次可再收一条。开发版对应 `developer`，体验版 `trial`，正式版 `formal`。自己点给自己做不发通知。

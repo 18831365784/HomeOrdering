@@ -6,6 +6,8 @@
         "urlCheck": false,
         "es6": true,
         "enhance": true,
+        "ignoreDevUnusedFiles": false,
+        "ignoreUploadUnusedFiles": false,
         "postcss": true,
         "minified": true,
         "babelSetting": {

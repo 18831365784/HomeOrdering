@@ -1,6 +1,6 @@
 <template>
-  <view class="menu-row" @click="$emit('click')">
-    <view class="menu-left">
+  <view class="menu-row" @click="onRowClick">
+    <view class="menu-left" :class="{ 'no-hit': subscribeId }">
       <view v-if="icon" class="menu-icon">
         <AppIcon :name="icon" :size="34" :color="iconColor" />
       </view>
@@ -9,7 +9,7 @@
         <text v-if="subtitle" class="menu-sub">{{ subtitle }}</text>
       </view>
     </view>
-    <view class="menu-right">
+    <view class="menu-right" :class="{ 'no-hit': subscribeId }">
       <text v-if="value" class="menu-value">{{ value }}</text>
       <AppIcon v-if="arrow" name="chevron" :size="24" color="#9A9086" />
     </view>
@@ -18,6 +18,7 @@
 
 <script>
 import AppIcon from './AppIcon.vue'
+import { requestMakerSubscribe } from '@/utils/subscribe.js'
 
 export default {
   name: 'MenuRow',
@@ -28,9 +29,19 @@ export default {
     value: { type: String, default: '' },
     icon: { type: String, default: '' },
     iconColor: { type: String, default: '#B85C38' },
-    arrow: { type: Boolean, default: true }
+    arrow: { type: Boolean, default: true },
+    subscribeId: { type: String, default: '' }
   },
-  emits: ['click']
+  emits: ['click'],
+  methods: {
+    onRowClick() {
+      if (this.subscribeId) {
+        requestMakerSubscribe(this.subscribeId)
+        return
+      }
+      this.$emit('click')
+    }
+  }
 }
 </script>
 
@@ -85,5 +96,8 @@ export default {
 .menu-value {
   font-size: 26rpx;
   color: var(--color-text-muted, #9A9086);
+}
+.no-hit {
+  pointer-events: none;
 }
 </style>

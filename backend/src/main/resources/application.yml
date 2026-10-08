@@ -30,6 +30,15 @@ file:
 wx:
   appid: ${WX_APPID:wxe17c8a6b5b7ff823}
   secret: ${WX_SECRET:7cda5e74ad68a823dd29aae7e2d1a229}
+  subscribe:
+    # 公众平台「我的模板」里的模板 ID。留空则不推送。
+    maker-template-id: ${WX_SUBSCRIBE_MAKER_TEMPLATE_ID:0Z7EbkMgo9W7hQ6dB17ebkqkAJGLH2LuUIiwtatPR-o}
+    page: pages/order/detail?id={orderId}
+    # 顾客下单提醒：客户名称 thing45、订单信息 thing11、下单时间 time36
+    fields:
+      thing45: "{customer}"
+      thing11: "{dishes}"
+      time36: "{time}"
 
 logging:
   pattern:

@@ -18,6 +18,10 @@ file:
   upload:
     path: ${FILE_UPLOAD_PATH:./uploads/}
 
+wx:
+  subscribe:
+    miniprogram-state: ${WX_SUBSCRIBE_STATE:trial} # developer 开发版 / trial 体验版 / formal 正式版
+
 logging:
   level:
     root: INFO

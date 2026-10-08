@@ -19,6 +19,11 @@ file:
     # 相对路径相对启动目录 user.dir；可改绝对路径或设环境变量 FILE_UPLOAD_PATH
     path: ${FILE_UPLOAD_PATH:./uploads/}
 
+# 开发版小程序才能收到订阅消息；体验版改为 trial
+wx:
+  subscribe:
+    miniprogram-state: ${WX_SUBSCRIBE_STATE:developer} # developer 开发版 / trial 体验版 / formal 正式版
+
 logging:
   level:
     com.homeordering: DEBUG

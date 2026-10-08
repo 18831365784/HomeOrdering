@@ -1,6 +1,7 @@
 <script>
 import userManager from '@/utils/user.js'
 import { familyApi } from '@/utils/api.js'
+import { requestMakerSubscribe } from '@/utils/subscribe.js'
 
 export default {
   onLaunch: function() {
@@ -14,6 +15,8 @@ export default {
   onHide: function() {},
 
   methods: {
+    requestMakerSubscribe,
+
     applyWindowBg() {
       try {
         uni.setBackgroundColor({

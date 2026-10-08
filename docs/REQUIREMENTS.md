@@ -48,6 +48,9 @@
 - 状态流转只用：`accept`（待接单→制作中）、`reject`（待接单由制作人拒绝并退余额→制作人已拒绝）、`finish`（制作中→已完成）、`cancel`（待接单由下单人取消并退余额）。不提供任意改状态或物理删除订单接口。
 - 订单列表按当前用户家庭过滤，禁止跨家庭。
 - 制作人必须是同家庭成员；下单菜品必须属于该家庭。
+- 别人指定你做菜（下单人与制作人不是同一人）且订单提交成功后，给制作人发一条微信服务通知。自己点给自己做不发。推送失败、未订阅或次数用完都不影响下单。
+- 通知用小程序**一次性订阅消息**（个人主体可用，进微信「服务通知」）。不用长期订阅、服务号模板消息、企业微信。制作人需事先在「我的」或「订单 → 我的制作」点「接收提醒」；每同意一次，服务端才能再发一条，次数可连点攒着。模板 ID 留空则不推送，入口也隐藏。
+- 模板用公众平台「顾客下单提醒」。关键词为客户名称 `thing45`、订单信息 `thing11`、下单时间 `time36`，模板 ID 写在 `wx.subscribe.maker-template-id`。点击通知打开对应订单详情。开发版 / 体验版 / 正式版用 `wx.subscribe.miniprogram-state`（`developer` / `trial` / `formal`）。前端不单独配模板，打开页面时向 `/notify/maker-subscribe` 取模板 ID。订阅弹窗在 `frontend/src/utils/subscribe.js`，并在 `App.vue` 入口引用，避免微信开发者工具把它当成未使用文件丢掉。`frontend/src/manifest.json` 的 `mp-weixin.setting` 保持 `ignoreDevUnusedFiles`、`ignoreUploadUnusedFiles` 为 `false`。
 
 ### 用户资料
 
@@ -69,9 +72,9 @@
 
 | 用途 | 唯一位置 |
 |---|---|
-| 后端端口、context-path、微信占位 | `backend/src/main/resources/application.yml` |
-| 本机 `server.url`、数据源、上传路径 | `backend/src/main/resources/application-dev.yml` |
-| 生产 `server.url`、数据源、上传路径 | `backend/src/main/resources/application-prod.yml` |
+| 后端端口、context-path、微信占位、制作提醒模板 | `backend/src/main/resources/application.yml` |
+| 本机 `server.url`、数据源、上传路径、订阅消息 `miniprogram-state` | `backend/src/main/resources/application-dev.yml` |
+| 生产 `server.url`、数据源、上传路径、订阅消息 `miniprogram-state` | `backend/src/main/resources/application-prod.yml` |
 | 微信密钥等敏感项 | 环境变量，示例说明见 `backend/.env.example`（该文件不会被程序自动加载），禁止提交真实密钥 |
 | 前端 API 根路径 | `frontend/.env.development` 与 `frontend/.env.production` 的 `VITE_API_BASE_URL` |
 

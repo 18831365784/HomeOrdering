@@ -16,6 +16,7 @@ import com.homeordering.mapper.OrderDetailMapper;
 import com.homeordering.mapper.OrderMapper;
 import com.homeordering.mapper.UserMapper;
 import com.homeordering.service.FamilyAccessService;
+import com.homeordering.service.MakerNotifyService;
 import com.homeordering.service.OrderService;
 import com.homeordering.util.FileUrlHelper;
 import com.homeordering.vo.OrderDetailVO;
@@ -25,6 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -44,6 +47,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserMapper userMapper;
     private final FamilyAccessService familyAccessService;
     private final FileUrlHelper fileUrlHelper;
+    private final MakerNotifyService makerNotifyService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -118,7 +122,23 @@ public class OrderServiceImpl implements OrderService {
         for (OrderDetail detail : orderDetails) {
             orderDetailMapper.insert(detail);
         }
+        if (!customer.getUuid().equals(maker.getUuid())) {
+            registerMakerNotify(order.getId());
+        }
         return order.getId();
+    }
+
+    private void registerMakerNotify(Long orderId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            makerNotifyService.notifyNewOrder(orderId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                makerNotifyService.notifyNewOrder(orderId);
+            }
+        });
     }
 
     @Override

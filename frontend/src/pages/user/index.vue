@@ -51,6 +51,13 @@
     </view>
 
     <view class="block">
+      <MenuRow
+        v-if="subscribeEnabled"
+        icon="order"
+        title="制作提醒"
+        subtitle="有人点你做菜时发微信通知"
+        :subscribe-id="templateId"
+      />
       <MenuRow icon="feedback" title="问题反馈" @click="goFeedback" />
     </view>
 
@@ -113,7 +120,7 @@
 </template>
 
 <script>
-import { userApi, familyApi, fileApi, authApi } from '@/utils/api.js'
+import { userApi, familyApi, fileApi, authApi, notifyApi } from '@/utils/api.js'
 import userManager from '@/utils/user.js'
 import AppIcon from '@/components/AppIcon.vue'
 import MenuRow from '@/components/MenuRow.vue'
@@ -131,7 +138,9 @@ export default {
       showNicknameModal: false,
       showBalanceModal: false,
       tempNickname: '',
-      tempBalance: ''
+      tempBalance: '',
+      subscribeEnabled: false,
+      templateId: ''
     }
   },
 
@@ -142,6 +151,7 @@ export default {
   onShow() {
     this.loadUserInfo()
     this.loadFamilyInfo()
+    this.loadSubscribeConfig()
   },
 
   methods: {
@@ -348,6 +358,17 @@ export default {
 
     goCategoryManage() {
       uni.navigateTo({ url: '/pages/category/manage' })
+    },
+
+    async loadSubscribeConfig() {
+      try {
+        const cfg = await notifyApi.makerSubscribe()
+        this.subscribeEnabled = !!(cfg && cfg.enabled && cfg.templateId)
+        this.templateId = this.subscribeEnabled ? cfg.templateId : ''
+      } catch (e) {
+        this.subscribeEnabled = false
+        this.templateId = ''
+      }
     },
 
     goFeedback() {
