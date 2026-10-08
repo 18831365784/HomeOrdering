@@ -90,6 +90,15 @@ const request = (url, options = {}) => {
   })
 }
 
+function uploadErrorMessage(message) {
+  if (!message || typeof message !== 'string') return '上传失败'
+  const text = message.trim()
+  if (text.startsWith('/') || text.includes('\\') || /[A-Za-z]:\\/.test(text)) {
+    return '服务器无法保存图片'
+  }
+  return text
+}
+
 const uploadFile = (filePath, path = '/file/upload') => {
   return new Promise((resolve, reject) => {
     const header = {}
@@ -112,11 +121,18 @@ const uploadFile = (filePath, path = '/file/upload') => {
           reject({ message: '未登录' })
           return
         }
-        const data = JSON.parse(res.data)
+        let data
+        try {
+          data = JSON.parse(res.data)
+        } catch (e) {
+          uni.showToast({ title: '上传失败', icon: 'none' })
+          reject(e)
+          return
+        }
         if (data.code === 200) {
           resolve(data.data)
         } else {
-          uni.showToast({ title: data.message || '上传失败', icon: 'none' })
+          uni.showToast({ title: uploadErrorMessage(data.message), icon: 'none' })
           reject(data)
         }
       },
@@ -177,6 +193,12 @@ export const orderApi = {
   },
   cancelOrder(id) {
     return request(`/order/${id}/cancel`, { method: 'PUT' })
+  }
+}
+
+export const feedbackApi = {
+  submit(content) {
+    return request('/feedback', { method: 'POST', data: { content } })
   }
 }
 

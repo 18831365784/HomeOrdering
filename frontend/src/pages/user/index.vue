@@ -51,8 +51,7 @@
     </view>
 
     <view class="block">
-      <text class="section-label">订单</text>
-      <MenuRow icon="order" title="历史订单" @click="goOrderList" />
+      <MenuRow icon="feedback" title="问题反馈" @click="goFeedback" />
     </view>
 
     <view class="logout-wrap">
@@ -351,8 +350,8 @@ export default {
       uni.navigateTo({ url: '/pages/category/manage' })
     },
 
-    goOrderList() {
-      uni.switchTab({ url: '/pages/order/list' })
+    goFeedback() {
+      uni.navigateTo({ url: '/pages/feedback/index' })
     },
 
     handleLogout() {

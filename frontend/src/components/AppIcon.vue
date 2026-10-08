@@ -20,6 +20,14 @@
     <view v-else-if="name === 'edit'" class="ico">
       <view class="pencil" :style="{ borderColor: color, background: color }"></view>
     </view>
+    <!-- feedback -->
+    <view v-else-if="name === 'feedback'" class="ico">
+      <view class="fb-bubble" :style="strokeStyle"></view>
+      <view class="fb-dot fd1" :style="fillStyle"></view>
+      <view class="fb-dot fd2" :style="fillStyle"></view>
+      <view class="fb-dot fd3" :style="fillStyle"></view>
+      <view class="fb-tail" :style="{ borderTopColor: color }"></view>
+    </view>
     <!-- close -->
     <view v-else-if="name === 'close'" class="ico">
       <view class="x1" :style="fillStyle"></view>
@@ -179,6 +187,37 @@ export default {
   height: 28%;
   background: inherit;
   clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.fb-bubble {
+  position: absolute;
+  left: 14%;
+  top: 18%;
+  width: 72%;
+  height: 50%;
+  border: 3rpx solid;
+  border-radius: 10rpx;
+  box-sizing: border-box;
+}
+.fb-dot {
+  position: absolute;
+  top: 39%;
+  width: 8%;
+  height: 8%;
+  border-radius: 50%;
+}
+.fd1 { left: 32%; }
+.fd2 { left: 46%; }
+.fd3 { left: 60%; }
+.fb-tail {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: 0;
+  height: 0;
+  margin-left: -8%;
+  border-left: 8% solid transparent;
+  border-right: 8% solid transparent;
+  border-top: 12% solid;
 }
 .x1, .x2 {
   position: absolute;

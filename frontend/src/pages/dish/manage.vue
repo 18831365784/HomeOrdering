@@ -63,7 +63,17 @@
             </view>
             <view class="field">
               <text class="field-label">简介</text>
-              <input class="modal-input" placeholder="口味、做法等（选填）" v-model="form.description" />
+              <input class="modal-input" placeholder="口味、特点等（选填）" v-model="form.description" />
+            </view>
+            <view class="field">
+              <text class="field-label">做法</text>
+              <textarea
+                class="modal-textarea"
+                placeholder="步骤、火候等（选填）"
+                v-model="form.cookingMethod"
+                maxlength="1000"
+                auto-height
+              />
             </view>
             <view class="field">
               <text class="field-label">图片</text>
@@ -201,7 +211,7 @@ export default {
       categoryIndex: 0,
       showModal: false,
       uuid: '',
-      form: { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, status: 1, sort: 0, extensions: '' },
+      form: { id: null, name: '', price: '', description: '', cookingMethod: '', imageUrl: '', categoryId: null, status: 1, sort: 0, extensions: '' },
       useVisualEditor: true,
       vizOptions: [],
       selectionTypes: ['single','multiple','input','number','boolean'],
@@ -333,7 +343,7 @@ export default {
     },
     
     openCreate() { 
-      this.form = { id: null, name: '', price: '', description: '', imageUrl: '', categoryId: null, category: '', status: 1, sort: 0, extensions: '' }
+      this.form = { id: null, name: '', price: '', description: '', cookingMethod: '', imageUrl: '', categoryId: null, category: '', status: 1, sort: 0, extensions: '' }
       this.categoryIndex = 0
       this.form.categoryId = this.categories[0].id
       this.form.category = this.categories[0].name
@@ -343,7 +353,7 @@ export default {
     },
     
     edit(dish) { 
-      this.form = { ...dish }
+      this.form = { ...dish, cookingMethod: dish.cookingMethod || '' }
       if (this.form.extensions && typeof this.form.extensions !== 'string') {
         try { this.form.extensions = JSON.stringify(this.form.extensions) } catch (e) { this.form.extensions = '' }
       }
@@ -701,6 +711,18 @@ export default {
 .modal-input:focus {
   border-color: #B85C38;
   background: #FFFFFF;
+}
+.modal-textarea {
+  background: #F7F3EE;
+  border: 2rpx solid #E8E0D6;
+  border-radius: 16rpx;
+  min-height: 160rpx;
+  padding: 20rpx 28rpx;
+  font-size: 28rpx;
+  color: #2A2420;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.5;
 }
 .upload-row {
   display: flex;

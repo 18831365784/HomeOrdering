@@ -47,7 +47,7 @@ yml 中形如 `${NAME:默认值}`：有环境变量用环境变量，没有就�
 
 数据库里本站图片只存 `/uploads/...`，换服务器只改 `server.url`（并搬迁上传目录文件）即可，不必改库。
 
-`file.upload.path` 控制磁盘目录：默认 `./uploads/`（相对 `java -jar` 或 `mvn spring-boot:run` 启动时所在目录）。换目录时改对应 yml 或环境变量 `FILE_UPLOAD_PATH` 为绝对路径，把旧文件拷过去后重启。
+`file.upload.path` 控制磁盘目录：默认 `./uploads/`（相对 `java -jar` 或 `mvn spring-boot:run` 启动时所在目录）。换目录时改对应 yml 或环境变量 `FILE_UPLOAD_PATH` 为绝对路径，把旧文件拷过去后重启。运行用户必须能在该目录新建文件；生产若从 `/www/wwwroot/default` 启动，目录就是 `/www/wwwroot/default/uploads/`。
 
 前端 `VITE_API_BASE_URL` 须带 `/api`。改完 `.env*` 后要重新执行 `npm run dev:mp-weixin`。
 
@@ -76,4 +76,4 @@ mysql -u root -p < backend/src/main/resources/db/init.sql
 
 ## 使用流程
 
-微信登录（老用户直接进入；新用户再选头像、填昵称）→ 创建家庭或填邀请码加入 → 管理员维护分类和菜品 → 成员加购并选择制作人下单（扣余额）→ 制作人接单或拒绝、完成；下单人可在待接单时取消（退余额）。制作人拒绝后状态为「制作人已拒绝」并退余额。
+微信登录（老用户直接进入；新用户再选头像、填昵称）→ 创建家庭或填邀请码加入 → 管理员维护分类和菜品（做法选填，只在详情有内容时显示）→ 成员加购并选择制作人下单（扣余额）→ 制作人接单或拒绝、完成；下单人可在待接单时取消（退余额）。制作人拒绝后状态为「制作人已拒绝」并退余额。订单从底部「订单」进入。「我的」里可以提交问题反馈，记录在 `feedback` 表。

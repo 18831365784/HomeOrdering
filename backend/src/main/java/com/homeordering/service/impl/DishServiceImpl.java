@@ -36,6 +36,7 @@ public class DishServiceImpl implements DishService {
             throw new BusinessException(ErrorCode.PARAM_INVALID);
         }
         dish.setName(dish.getName().trim());
+        dish.setCookingMethod(normalizeCookingMethod(dish.getCookingMethod(), true));
         dish.setImageUrl(fileUrlHelper.toStoredPath(dish.getImageUrl()));
         dish.setFamilyId(family.getId());
         dish.setStatus(dish.getStatus() == null ? 1 : dish.getStatus());
@@ -85,6 +86,9 @@ public class DishServiceImpl implements DishService {
         if (!user.getFamilyId().equals(existing.getFamilyId())) {
             throw new BusinessException(ErrorCode.FAMILY_NOT_ADMIN);
         }
+        if (dish.getCookingMethod() != null) {
+            dish.setCookingMethod(normalizeCookingMethod(dish.getCookingMethod(), false));
+        }
         dish.setImageUrl(fileUrlHelper.toStoredPath(dish.getImageUrl()));
         dish.setFamilyId(existing.getFamilyId());
         dish.setUpdateTime(LocalDateTime.now());
@@ -110,6 +114,21 @@ public class DishServiceImpl implements DishService {
         LambdaUpdateWrapper<Dish> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(Dish::getId, dishId).setSql("order_count = order_count + " + count);
         dishMapper.update(null, updateWrapper);
+    }
+
+    /** blankAsNull 为 true 时，空白做法存 null（新增）；更新时用空串清掉旧值 */
+    private String normalizeCookingMethod(String value, boolean blankAsNull) {
+        if (value == null) {
+            return null;
+        }
+        String method = value.trim();
+        if (method.length() > 1000) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID.getCode(), "做法不能超过1000字");
+        }
+        if (method.isEmpty()) {
+            return blankAsNull ? null : "";
+        }
+        return method;
     }
 
     private Dish withPublicUrls(Dish dish) {

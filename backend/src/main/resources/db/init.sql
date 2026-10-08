@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS `dish` (
   `name` VARCHAR(100) NOT NULL COMMENT '菜品名称',
   `image_url` VARCHAR(500) DEFAULT NULL COMMENT '菜品图：本站上传存 /uploads/...',
   `description` VARCHAR(500) DEFAULT NULL COMMENT '菜品简介',
+  `cooking_method` VARCHAR(1000) DEFAULT NULL COMMENT '做法，空则详情不展示',
   `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '菜品价格',
   `category` VARCHAR(50) DEFAULT NULL COMMENT '分类名称',
   `order_count` INT NOT NULL DEFAULT 0 COMMENT '点单次数',
@@ -102,3 +103,14 @@ CREATE TABLE IF NOT EXISTS `order_detail` (
   INDEX `idx_order_id` (`order_id`),
   INDEX `idx_dish_id` (`dish_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单详情表';
+
+CREATE TABLE IF NOT EXISTS `feedback` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_uuid` VARCHAR(100) NOT NULL COMMENT '反馈人UUID，取登录态',
+  `nickname` VARCHAR(100) DEFAULT NULL COMMENT '反馈时昵称',
+  `family_id` BIGINT DEFAULT NULL COMMENT '反馈时所属家庭，可空',
+  `content` VARCHAR(1000) NOT NULL COMMENT '问题描述',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+  PRIMARY KEY (`id`),
+  INDEX `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='问题反馈';

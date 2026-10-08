@@ -8,6 +8,8 @@ import com.homeordering.common.Result;
 import com.homeordering.entity.User;
 import com.homeordering.mapper.UserMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,13 @@ public class AuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
+        }
+        // 图片不存在时容器会转发到错误页；不要把 404 改写成未登录
+        if (request.getDispatcherType() == DispatcherType.ERROR) {
+            Object uri = request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);
+            if (uri != null && uri.toString().contains("/uploads/")) {
+                return true;
+            }
         }
         try {
             String token = request.getHeader("Authorization");

@@ -34,6 +34,7 @@
 - 按 `family_id` 隔离。分类名称在同一家庭内唯一。
 - 点餐页每次显示都按当前用户家庭重新拉取上架分类和菜品。未加入家庭时列表为空；加入后再进入点餐页必须能看到该家庭分类。
 - 菜品可有 JSON `extensions` 扩展选项（加价）。
+- 菜品有可选「做法」（`cooking_method`）。点餐列表、菜品管理列表、购物车和订单都不展示。详情页仅在去空白后仍有内容时展示。
 - 点单次数随下单累加。
 - 菜品新增/更新/删除均须管理员。
 
@@ -53,11 +54,14 @@
 - 更新资料统一走 `PUT /user/profile`（只能改自己）。
 - 资料页同样用 `chooseAvatar` / `type="nickname"` 修改头像昵称。
 - 查他人信息仅限同家庭成员。
+- 「我的」不放历史订单入口；订单仍从底部「订单」进入。
+- 任意已登录用户可在「我的」提交问题反馈。内容写入 `feedback`（反馈人取登录态，不信客户端传入的身份）。小程序内不提供反馈列表，开发者直接查这张表。
 
 ### 文件
 
 - 图片本地存储。库内本站上传只存相对路径 `/uploads/...`（不含主机）；接口返回时用当前 `server.url` + `context-path` 拼绝对地址。微信头像等外链可存完整 URL。
-- 上传目录由 `file.upload.path` 配置（`application-dev.yml` / `application-prod.yml` 或环境变量 `FILE_UPLOAD_PATH`）。相对路径相对进程启动目录；生产可改为绝对路径。
+- 上传目录由 `file.upload.path` 配置（`application-dev.yml` / `application-prod.yml` 或环境变量 `FILE_UPLOAD_PATH`）。相对路径相对进程启动目录；生产可改为绝对路径。运行后端的系统用户必须能在该目录新建文件。写失败时接口返回中文原因，不把磁盘路径回给小程序。
+- `/uploads/**` 不校验登录。文件不存在时保持 404，错误转发不得改写成未登录。
 - 不做云存储实现。
 - 旧库若已存完整 ngrok/域名地址：执行 `upgrade.sql` 会剥成 `/uploads/...`。即使未迁移，接口读出时也会按当前 `server.url` 重写本站上传地址。
 
@@ -87,7 +91,7 @@
 - 空库：`backend/src/main/resources/db/init.sql`（禁止 `DROP`，禁止无家庭的全局示例菜）。
 - 旧库保数据：`backend/src/main/resources/db/upgrade.sql`（幂等）。
 - 禁止第三份 schema / dump。`family.id` 与其它表一致使用自增。
-- 表：`user`、`family`、`category`、`dish`、`order`、`order_detail`。
+- 表：`user`、`family`、`category`、`dish`、`order`、`order_detail`、`feedback`。
 
 ## 前端源码
 

@@ -84,6 +84,15 @@
       }
     },
     {
+      "path": "pages/feedback/index",
+      "style": {
+        "navigationBarTitleText": "问题反馈",
+        "navigationBarBackgroundColor": "#F7F3EE",
+        "backgroundColor": "#F7F3EE",
+        "backgroundColorContent": "#F7F3EE"
+      }
+    },
+    {
       "path": "pages/family/index",
       "style": {
         "navigationBarTitleText": "家庭",

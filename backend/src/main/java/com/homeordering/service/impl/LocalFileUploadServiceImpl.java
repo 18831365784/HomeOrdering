@@ -5,19 +5,25 @@ import com.homeordering.common.ErrorCode;
 import com.homeordering.service.FileUploadService;
 import com.homeordering.util.FileUrlHelper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LocalFileUploadServiceImpl implements FileUploadService {
@@ -40,16 +46,19 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
         File trueDir = (subDir == null || subDir.isEmpty())
                 ? resolveUploadRoot()
                 : new File(resolveUploadRoot(), subDir);
-        if (!trueDir.exists() && !trueDir.mkdirs()) {
-            throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR.getCode(), "创建上传目录失败");
-        }
+        ensureUploadDir(trueDir);
 
         String extension = resolveExtension(file);
         String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String fileName = dateStr + "_" + UUID.randomUUID().toString().replace("-", "") + extension;
 
-        Path filePath = Paths.get(trueDir.getAbsolutePath(), fileName);
-        Files.write(filePath, file.getBytes());
+        Path filePath = trueDir.toPath().resolve(fileName);
+        try {
+            Files.write(filePath, file.getBytes());
+        } catch (FileSystemException e) {
+            log.error("写入上传文件失败: {}", filePath, e);
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR.getCode(), explainWriteFailure(e));
+        }
 
         String stored = (subDir == null || subDir.isEmpty())
                 ? ("/uploads/" + fileName)
@@ -71,6 +80,43 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
         } catch (IOException e) {
             return false;
         }
+    }
+
+    private void ensureUploadDir(File dir) {
+        Path path = dir.toPath();
+        try {
+            if (Files.exists(path) && !Files.isDirectory(path)) {
+                log.error("上传路径不是文件夹: {}", dir.getAbsolutePath());
+                throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR.getCode(), "上传路径不是文件夹");
+            }
+            Files.createDirectories(path);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (IOException e) {
+            log.error("创建上传目录失败: {}", dir.getAbsolutePath(), e);
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR.getCode(), "创建上传目录失败");
+        }
+        if (!Files.isWritable(path)) {
+            log.error("上传目录不可写: {}", dir.getAbsolutePath());
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR.getCode(), "上传目录没有写入权限");
+        }
+    }
+
+    private String explainWriteFailure(FileSystemException e) {
+        if (e instanceof AccessDeniedException) {
+            return "上传目录没有写入权限";
+        }
+        if (e instanceof NoSuchFileException || e instanceof NotDirectoryException) {
+            return "上传目录不可用";
+        }
+        String reason = e.getReason() == null ? "" : e.getReason().toLowerCase();
+        if (reason.contains("permission") || reason.contains("denied")) {
+            return "上传目录没有写入权限";
+        }
+        if (reason.contains("space") || reason.contains("quota")) {
+            return "服务器磁盘空间不足";
+        }
+        return "图片保存失败";
     }
 
     private File resolveUploadRoot() {

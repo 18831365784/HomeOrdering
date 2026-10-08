@@ -148,5 +148,19 @@ WHERE `dish_image` IS NOT NULL
   AND `dish_image` LIKE '%/uploads/%'
   AND `dish_image` NOT LIKE '/uploads/%';
 
+CALL ho_add_column_if_missing('dish', 'cooking_method',
+  'ALTER TABLE `dish` ADD COLUMN `cooking_method` VARCHAR(1000) DEFAULT NULL COMMENT ''做法，空则详情不展示'' AFTER `description`');
+
+CREATE TABLE IF NOT EXISTS `feedback` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_uuid` VARCHAR(100) NOT NULL COMMENT '反馈人UUID，取登录态',
+  `nickname` VARCHAR(100) DEFAULT NULL COMMENT '反馈时昵称',
+  `family_id` BIGINT DEFAULT NULL COMMENT '反馈时所属家庭，可空',
+  `content` VARCHAR(1000) NOT NULL COMMENT '问题描述',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+  PRIMARY KEY (`id`),
+  INDEX `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='问题反馈';
+
 DROP PROCEDURE IF EXISTS `ho_add_column_if_missing`;
 DROP PROCEDURE IF EXISTS `ho_add_index_if_missing`;

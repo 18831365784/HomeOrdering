@@ -1,11 +1,11 @@
 <template>
   <view class="page">
     <view v-if="dish" class="page-with-bottom">
-      <view class="banner">
+      <view class="banner" :class="{ empty: !dish.imageUrl }">
         <SafeImage
           v-if="dish.imageUrl"
           :src="dish.imageUrl"
-          mode="aspectFill"
+          mode="widthFix"
           imgClass="banner-img"
         />
         <view v-else class="banner-empty">
@@ -20,6 +20,10 @@
         </view>
         <text class="price">¥{{ dish.price }}</text>
         <text class="desc">{{ dish.description || '暂无简介' }}</text>
+        <view v-if="cookingMethodText" class="method">
+          <text class="method-label">做法</text>
+          <text class="method-text">{{ cookingMethodText }}</text>
+        </view>
       </view>
 
       <view v-if="extOptions.length" class="panel">
@@ -127,6 +131,10 @@ export default {
   },
 
   computed: {
+    cookingMethodText() {
+      const text = (this.dish && this.dish.cookingMethod) || ''
+      return String(text).trim()
+    },
     totalPrice() {
       if (!this.dish) return 0
       let extra = 0
@@ -305,13 +313,18 @@ export default {
 
 .banner {
   width: 100%;
-  height: 480rpx;
   background: #E8E0D6;
+  line-height: 0;
+}
+
+.banner.empty {
+  height: 480rpx;
 }
 
 :deep(.banner-img) {
   width: 100%;
-  height: 480rpx;
+  height: auto;
+  display: block;
 }
 
 .banner-empty {
@@ -363,6 +376,27 @@ export default {
   font-size: 26rpx;
   color: #6B6158;
   line-height: 1.6;
+}
+
+.method {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 2rpx solid #F0E8E0;
+}
+
+.method-label {
+  display: block;
+  font-size: 24rpx;
+  color: #9A9086;
+  margin-bottom: 8rpx;
+}
+
+.method-text {
+  display: block;
+  font-size: 26rpx;
+  color: #2A2420;
+  line-height: 1.7;
+  white-space: pre-wrap;
 }
 
 .panel-title {

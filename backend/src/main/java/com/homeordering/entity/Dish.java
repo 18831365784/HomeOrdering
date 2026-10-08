@@ -24,6 +24,9 @@ public class Dish implements Serializable {
 
     private String description;
 
+    /** 做法，空白则详情不展示 */
+    private String cookingMethod;
+
     private BigDecimal price;
 
     private String category;
